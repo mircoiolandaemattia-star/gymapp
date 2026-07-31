@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Certificato self-signed per test mobile
+.certs/
+
 # Logs
 *.log
 install.log

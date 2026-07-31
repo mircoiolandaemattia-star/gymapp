@@ -4,8 +4,12 @@ import { bottomNav } from '/src/components/bottomNav.js'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.warn('[SW] registrazione fallita:', error)
+    })
   })
+} else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+  console.warn('[SW] Service Worker non disponibile: serve una connessione HTTPS (es. https://IP).')
 }
 
 const app = document.getElementById('app')

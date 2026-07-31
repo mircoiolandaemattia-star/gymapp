@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/generate-precache.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "mobile": "node scripts/serve-https.mjs"
   },
   "devDependencies": {
     "vite": "^6.3.5"
