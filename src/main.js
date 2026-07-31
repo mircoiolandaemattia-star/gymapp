@@ -14,16 +14,15 @@ const AUTH_PATHS = ['/login', '/register', '/onboarding']
 
 function render() {
   app.innerHTML = ''
-  const path = window.location.pathname || '/'
   const page = document.createElement('div')
   page.id = 'page-content'
   app.appendChild(page)
   router(page)
+  const path = window.location.pathname || '/'
   if (!isActiveWorkout() && !AUTH_PATHS.includes(path)) {
     app.appendChild(bottomNav())
   }
 }
 
-render()
-
 window.addEventListener('popstate', render)
+render()

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fittrack-v1'
+const CACHE_NAME = 'fittrack-v2'
 
 const STATIC_ASSETS = [
   '/',
@@ -35,14 +35,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (STATIC_ASSETS.includes(url.pathname)) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
-    )
+    event.respondWith(networkFirst(request))
     return
   }
 
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request))
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(cacheFirst(request))
     return
   }
 
@@ -58,6 +56,19 @@ async function networkFirst(request) {
   } catch {
     const cached = await caches.match(request)
     if (cached) return cached
+    return new Response('Offline', { status: 503 })
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+  try {
+    const response = await fetch(request)
+    const cache = await caches.open(CACHE_NAME)
+    cache.put(request, response.clone())
+    return response
+  } catch {
     return new Response('Offline', { status: 503 })
   }
 }
