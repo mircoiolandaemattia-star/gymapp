@@ -4,6 +4,7 @@ import { completeOnboarding, getUser } from '/src/utils/auth.js'
 import { storage } from '/src/utils/storage.js'
 import { calculateCalories } from '/src/utils/calorieCalculator.js'
 import { onboardingProgressBar } from '/src/components/onboardingProgressBar.js'
+import { goalOptions, activityOptions, SEX_OPTIONS } from '/src/mock/profileData.js'
 import {
   Dumbbell,
   Flame,
@@ -20,24 +21,11 @@ import {
 
 const TOTAL_STEPS = 5
 
-const SEX_OPTIONS = [
-  { value: 'M', label: 'Maschio' },
-  { value: 'F', label: 'Femmina' },
-  { value: 'O', label: 'Altro' },
-]
-
-const GOALS = [
-  { value: 'dimagrire', label: 'Dimagrire', desc: 'Riduci il grasso corporeo mantenendo la massa muscolare', icon: Flame },
-  { value: 'mantenere', label: 'Mantenimento', desc: 'Resta in forma mantenendo il tuo peso attuale', icon: Scale },
-  { value: 'massa', label: 'Massa muscolare', desc: 'Aumenta la massa muscolare con un surplus calorico', icon: Dumbbell },
-]
-
-const ACTIVITIES = [
-  { value: 'sedentario', label: 'Sedentario', desc: 'Poco o nessun esercizio fisico' },
-  { value: 'leggero', label: 'Leggermente attivo', desc: 'Ti alleni 1-3 volte a settimana' },
-  { value: 'moderato', label: 'Moderatamente attivo', desc: 'Ti alleni 3-5 volte a settimana' },
-  { value: 'attivo', label: 'Molto attivo', desc: 'Ti alleni 6-7 volte a settimana o svolgi un lavoro fisico' },
-]
+const GOAL_ICONS = {
+  dimagrire: Flame,
+  mantenere: Scale,
+  massa: Dumbbell,
+}
 
 const LEGAL_TEXT =
   'Le schede di allenamento e i piani alimentari generati dall’intelligenza artificiale hanno scopo puramente informativo e non sostituiscono il parere di un medico, nutrizionista o personal trainer certificato. Prima di iniziare qualsiasi programma di allenamento o alimentare, specialmente se hai patologie pregresse, consulta un professionista qualificato. L’utilizzo dell’app è a tuo rischio e l’azienda non è responsabile per infortuni o problemi di salute derivanti dal suo utilizzo.'
@@ -261,9 +249,9 @@ function buildGoalStep() {
   const frag = document.createDocumentFragment()
   frag.appendChild(stepHeader('Qual è il tuo obiettivo?', 'Seleziona l’obiettivo principale del tuo percorso'))
   const list = el('div', 'onb-card-list')
-  GOALS.forEach((g) => {
+  goalOptions.forEach((g) => {
     list.appendChild(selectableCard({
-      icon: g.icon,
+      icon: GOAL_ICONS[g.value],
       label: g.label,
       desc: g.desc,
       selected: data.goal === g.value,
@@ -281,7 +269,7 @@ function buildActivityStep() {
   const frag = document.createDocumentFragment()
   frag.appendChild(stepHeader('Quanto sei attivo?', 'Indica quanto sport svolgi nella tua settimana tipo'))
   const list = el('div', 'onb-card-list')
-  ACTIVITIES.forEach((a) => {
+  activityOptions.forEach((a) => {
     list.appendChild(selectableCard({
       label: a.label,
       desc: a.desc,

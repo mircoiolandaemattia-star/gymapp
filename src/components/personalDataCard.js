@@ -1,11 +1,17 @@
 import { createIcon } from '/src/utils/icons.js'
 import { Pencil, Save, Activity, TrendingDown, Ruler, User } from 'lucide'
+import { SEX_OPTIONS } from '/src/mock/profileData.js'
 
 const ROWS = [
   { key: 'eta', label: 'Età', unit: 'anni', icon: Activity, step: '1' },
   { key: 'peso', label: 'Peso', unit: 'kg', icon: TrendingDown, step: '0.1' },
   { key: 'altezza', label: 'Altezza', unit: 'cm', icon: Ruler, step: '1' },
 ]
+
+function sexLabel(value) {
+  const opt = SEX_OPTIONS.find((s) => s.value === value)
+  return opt ? opt.label : 'Femmina'
+}
 
 function personalDataCard({ data, editing, onEdit, onSave, onCancel }) {
   const card = document.createElement('div')
@@ -61,7 +67,7 @@ function personalDataCard({ data, editing, onEdit, onSave, onCancel }) {
     sexRow.appendChild(l)
     const v = document.createElement('span')
     v.className = 'data-value'
-    v.textContent = data.sesso === 'M' ? 'Maschio' : 'Femmina'
+    v.textContent = sexLabel(data.sesso)
     sexRow.appendChild(v)
     card.appendChild(sexRow)
   } else {
@@ -92,14 +98,12 @@ function personalDataCard({ data, editing, onEdit, onSave, onCancel }) {
     const sel = document.createElement('select')
     sel.id = 'pd-sesso'
     sel.className = 'input input-sm input-select'
-    const o1 = document.createElement('option')
-    o1.value = 'M'
-    o1.textContent = 'Maschio'
-    const o2 = document.createElement('option')
-    o2.value = 'F'
-    o2.textContent = 'Femmina'
-    sel.appendChild(o1)
-    sel.appendChild(o2)
+    SEX_OPTIONS.forEach((s) => {
+      const o = document.createElement('option')
+      o.value = s.value
+      o.textContent = s.label
+      sel.appendChild(o)
+    })
     sel.value = data.sesso
     sexG.appendChild(sel)
     grid.appendChild(sexG)
