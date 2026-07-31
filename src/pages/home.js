@@ -2,6 +2,7 @@ import { createIcon } from '/src/utils/icons.js'
 import { User } from 'lucide'
 import { homeData } from '/src/mock/homeData.js'
 import { getUser } from '/src/utils/auth.js'
+import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 import { calorieRing } from '/src/components/calorieRing.js'
 import { workoutTodayCard } from '/src/components/workoutTodayCard.js'
 import { quickStats } from '/src/components/quickStats.js'
@@ -44,7 +45,8 @@ function render() {
   header.appendChild(userBtn)
 
   section.appendChild(header)
-  section.appendChild(calorieRing(homeData.calories))
+  const targets = getNutritionTargets()
+  section.appendChild(calorieRing({ consumed: homeData.calories.consumed, target: targets.calories }))
   section.appendChild(workoutTodayCard(homeData.workout))
   section.appendChild(quickStats(homeData.quickStats))
   section.appendChild(mealsSummaryCard(homeData.meals))

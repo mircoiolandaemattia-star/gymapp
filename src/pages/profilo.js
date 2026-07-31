@@ -67,7 +67,31 @@ function computeCalories() {
     activity,
     goal,
   })
-  return Math.round(result.calories / 10) * 10
+  return Math.round(result.calories)
+}
+
+function persistNutrition() {
+  const result = calculateCalories({
+    sex: user.sesso,
+    weightKg: Number(user.peso),
+    heightCm: Number(user.altezza),
+    age: Number(user.eta),
+    activity,
+    goal,
+  })
+  storage.set(KEYS.profile, {
+    ...(storage.get(KEYS.profile) || {}),
+    name: user.name,
+    eta: Number(user.eta),
+    sesso: user.sesso,
+    peso: Number(user.peso),
+    altezza: Number(user.altezza),
+    goal,
+    activity,
+    calories: Math.round(result.calories),
+    macros: result.macros,
+    updatedAt: new Date().toISOString(),
+  })
 }
 
 function applyTheme() {
@@ -119,6 +143,7 @@ function buildSection() {
     onSave: (data) => {
       user = { ...user, ...data }
       editingData = false
+      persistNutrition()
       render()
     },
     onCancel: () => {
@@ -132,6 +157,7 @@ function buildSection() {
     calories: computeCalories(),
     onChange: (v) => {
       goal = v
+      persistNutrition()
       render()
     },
   }))
@@ -140,6 +166,7 @@ function buildSection() {
     active: activity,
     onChange: (v) => {
       activity = v
+      persistNutrition()
       render()
     },
   }))

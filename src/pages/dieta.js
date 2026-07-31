@@ -1,6 +1,7 @@
 import { createIcon } from '/src/utils/icons.js'
 import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles } from 'lucide'
-import { dietDays, todayIndex, macroTargets } from '/src/mock/dietData.js'
+import { dietDays, todayIndex } from '/src/mock/dietData.js'
+import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 import { macroProgressBar } from '/src/components/macroProgressBar.js'
 import { mealSection } from '/src/components/mealSection.js'
 import { addFoodModal } from '/src/components/addFoodModal.js'
@@ -9,6 +10,16 @@ import { generateDietFlow } from '/src/components/generateDietFlow.js'
 let currentIndex = todayIndex
 let expandedMeals = new Set(['pranzo', 'cena'])
 let currentSection = null
+
+function targets() {
+  const t = getNutritionTargets()
+  return {
+    calories: t.calories,
+    protein: t.protein,
+    carbs: t.carbs,
+    fat: t.fats,
+  }
+}
 
 function render() {
   const section = buildSection()
@@ -77,6 +88,7 @@ function buildSection() {
     return acc
   }, { cal: 0, protein: 0, carbs: 0, fat: 0 })
 
+  const t = targets()
   const macroCard = document.createElement('div')
   macroCard.className = 'card macro-card'
 
@@ -94,15 +106,15 @@ function buildSection() {
   macroTotal.appendChild(macroValue)
   const macroTarget = document.createElement('span')
   macroTarget.className = 'macro-top-target'
-  macroTarget.textContent = ` / ${macroTargets.calories} kcal`
+  macroTarget.textContent = ` / ${t.calories} kcal`
   macroTotal.appendChild(macroTarget)
   macroTop.appendChild(macroTotal)
   macroCard.appendChild(macroTop)
 
   const bars = [
-    { label: 'Proteine', icon: Droplet, color: 'var(--info)', value: Math.round(totals.protein), target: macroTargets.protein },
-    { label: 'Carboidrati', icon: Wheat, color: 'var(--warning)', value: Math.round(totals.carbs), target: macroTargets.carbs },
-    { label: 'Grassi', icon: CircleDot, color: 'var(--error)', value: Math.round(totals.fat), target: macroTargets.fat },
+    { label: 'Proteine', icon: Droplet, color: 'var(--info)', value: Math.round(totals.protein), target: t.protein },
+    { label: 'Carboidrati', icon: Wheat, color: 'var(--warning)', value: Math.round(totals.carbs), target: t.carbs },
+    { label: 'Grassi', icon: CircleDot, color: 'var(--error)', value: Math.round(totals.fat), target: t.fat },
   ]
   bars.forEach((b) => {
     macroCard.appendChild(macroProgressBar(b))
