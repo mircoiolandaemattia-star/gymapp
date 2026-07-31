@@ -3088,11 +3088,13 @@ html.light .bottom-nav {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
 }
 
 .profile-header-email {
   font-size: 0.8125rem;
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .plan-badge {
