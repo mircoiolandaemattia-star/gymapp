@@ -22,7 +22,6 @@ function login(email, password) {
   })
   if (match) {
     storage.set(KEYS.auth, true)
-    storage.set(KEYS.firstAccess, true)
     storage.set(KEYS.user, { name: match.name, email: match.email, password: match.password })
     return true
   }
