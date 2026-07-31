@@ -38,6 +38,8 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
   --bottom-nav-height: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html {
@@ -59,7 +61,8 @@ body {
 #app {
   max-width: 480px;
   margin: 0 auto;
-  padding: var(--space-lg) var(--space-md) calc(var(--bottom-nav-height) + var(--space-lg));
+  padding: calc(var(--space-lg) + var(--safe-top)) var(--space-md)
+    calc(var(--bottom-nav-height) + var(--space-lg) + var(--safe-bottom));
   min-height: 100dvh;
 }
 
@@ -603,7 +606,7 @@ body {
 }
 
 .onboarding-page {
-  min-height: calc(100dvh - var(--space-lg) - var(--bottom-nav-height));
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--space-lg) - var(--bottom-nav-height));
   display: flex;
   flex-direction: column;
 }
@@ -645,7 +648,7 @@ body {
 
 .onb-body {
   flex: 1;
-  padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl));
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-xl) + var(--safe-bottom));
 }
 
 .onb-step-header {
