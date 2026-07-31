@@ -1,10 +1,10 @@
 import { createIcon } from '/src/utils/icons.js'
 import { LogOut } from 'lucide'
 import { navigate } from '/src/utils/router.js'
-import { bmr } from '/src/utils/calcoli.js'
+import { calculateCalories } from '/src/utils/calorieCalculator.js'
 import { storage } from '/src/utils/storage.js'
 import { logout as doLogout, getUser } from '/src/utils/auth.js'
-import { profileData, activityOptions } from '/src/mock/profileData.js'
+import { profileData } from '/src/mock/profileData.js'
 import { profileHeader } from '/src/components/profileHeader.js'
 import { personalDataCard } from '/src/components/personalDataCard.js'
 import { goalSelector } from '/src/components/goalSelector.js'
@@ -20,11 +20,12 @@ const KEYS = {
   notifications: 'ft_notifications',
   reminders: 'ft_reminders',
   plan: 'ft_plan',
+  profile: 'ft_profile',
 }
 
 let user = syncUser()
-let goal = profileData.goal
-let activity = profileData.activity
+let goal = storage.get(KEYS.profile)?.goal || profileData.goal
+let activity = storage.get(KEYS.profile)?.activity || profileData.activity
 let reminders = (storage.get(KEYS.reminders) || profileData.reminders).map((r) => ({ ...r }))
 let plan = loadPlan()
 let notifications = storage.get(KEYS.notifications) !== false
@@ -34,7 +35,13 @@ let currentSection = null
 
 function syncUser() {
   const authUser = getUser()
-  return { ...profileData.user, name: authUser.name, email: authUser.email }
+  const saved = storage.get(KEYS.profile) || {}
+  return {
+    ...profileData.user,
+    ...saved,
+    name: authUser.name,
+    email: authUser.email,
+  }
 }
 
 function loadPlan() {
@@ -52,10 +59,15 @@ function persistReminders() {
 }
 
 function computeCalories() {
-  const factor = (activityOptions.find((a) => a.value === activity) || {}).factor || 1.55
-  const base = bmr(user.altezza, user.peso, user.eta, user.sesso)
-  const mult = goal === 'dimagrire' ? 0.85 : goal === 'massa' ? 1.1 : 1
-  return Math.round((base * factor * mult) / 10) * 10
+  const result = calculateCalories({
+    sex: user.sesso,
+    weightKg: Number(user.peso),
+    heightCm: Number(user.altezza),
+    age: Number(user.eta),
+    activity,
+    goal,
+  })
+  return Math.round(result.calories / 10) * 10
 }
 
 function applyTheme() {
@@ -78,7 +90,7 @@ function render() {
 function buildSection() {
   const authUser = getUser()
   if (!user || authUser.email !== user.email) {
-    user = { ...profileData.user, name: authUser.name, email: authUser.email }
+    user = syncUser()
   }
   const section = document.createElement('section')
   section.className = 'page profilo-page'
