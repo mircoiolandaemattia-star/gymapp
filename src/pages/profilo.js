@@ -3,7 +3,7 @@ import { LogOut } from 'lucide'
 import { navigate } from '/src/utils/router.js'
 import { bmr } from '/src/utils/calcoli.js'
 import { storage } from '/src/utils/storage.js'
-import { logout as doLogout } from '/src/utils/auth.js'
+import { logout as doLogout, getUser } from '/src/utils/auth.js'
 import { profileData, activityOptions } from '/src/mock/profileData.js'
 import { profileHeader } from '/src/components/profileHeader.js'
 import { personalDataCard } from '/src/components/personalDataCard.js'
@@ -22,7 +22,7 @@ const KEYS = {
   plan: 'ft_plan',
 }
 
-let user = { ...profileData.user }
+let user = syncUser()
 let goal = profileData.goal
 let activity = profileData.activity
 let reminders = (storage.get(KEYS.reminders) || profileData.reminders).map((r) => ({ ...r }))
@@ -31,6 +31,11 @@ let notifications = storage.get(KEYS.notifications) !== false
 let darkMode = storage.get(KEYS.theme) !== 'light'
 let editingData = false
 let currentSection = null
+
+function syncUser() {
+  const authUser = getUser()
+  return { ...profileData.user, name: authUser.name, email: authUser.email }
+}
 
 function loadPlan() {
   const stored = storage.get(KEYS.plan)
@@ -71,6 +76,10 @@ function render() {
 }
 
 function buildSection() {
+  const authUser = getUser()
+  if (!user || authUser.email !== user.email) {
+    user = { ...profileData.user, name: authUser.name, email: authUser.email }
+  }
   const section = document.createElement('section')
   section.className = 'page profilo-page'
 

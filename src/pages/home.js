@@ -1,6 +1,7 @@
 import { createIcon } from '/src/utils/icons.js'
 import { User } from 'lucide'
 import { homeData } from '/src/mock/homeData.js'
+import { getUser } from '/src/utils/auth.js'
 import { calorieRing } from '/src/components/calorieRing.js'
 import { workoutTodayCard } from '/src/components/workoutTodayCard.js'
 import { quickStats } from '/src/components/quickStats.js'
@@ -11,6 +12,10 @@ function greeting() {
   if (h < 12) return 'Buongiorno'
   if (h < 17) return 'Buon pomeriggio'
   return 'Buonasera'
+}
+
+function firstName(fullName) {
+  return String(fullName || '').trim().split(/\s+/)[0] || fullName
 }
 
 function render() {
@@ -24,7 +29,7 @@ function render() {
   left.className = 'home-header-left'
   const greet = document.createElement('span')
   greet.className = 'home-greeting'
-  greet.textContent = `${greeting()}, ${homeData.userName}`
+  greet.textContent = `${greeting()}, ${firstName(getUser().name)}`
   left.appendChild(greet)
   const date = document.createElement('span')
   date.className = 'home-date'
