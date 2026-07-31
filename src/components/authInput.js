@@ -21,7 +21,7 @@ function authInput({ type, id, label, placeholder, icon, autocomplete }) {
   if (autocomplete) input.autocomplete = autocomplete
 
   const leftIcon = createIcon(icon, 18, 2)
-  leftIcon.className = 'auth-input-icon'
+  leftIcon.setAttribute('class', 'auth-input-icon')
   wrap.appendChild(leftIcon)
   wrap.appendChild(input)
 

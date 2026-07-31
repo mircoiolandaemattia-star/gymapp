@@ -3,6 +3,7 @@ import { LogOut } from 'lucide'
 import { navigate } from '/src/utils/router.js'
 import { bmr } from '/src/utils/calcoli.js'
 import { storage } from '/src/utils/storage.js'
+import { logout as doLogout } from '/src/utils/auth.js'
 import { profileData, activityOptions } from '/src/mock/profileData.js'
 import { profileHeader } from '/src/components/profileHeader.js'
 import { personalDataCard } from '/src/components/personalDataCard.js'
@@ -183,7 +184,12 @@ function buildSection() {
   logSpan.textContent = 'Esci'
   logoutBtn.appendChild(logSpan)
   logoutBtn.addEventListener('click', () => {
-    logoutConfirmModal({ onConfirm: () => navigate('/login') })
+    logoutConfirmModal({
+      onConfirm: () => {
+        doLogout()
+        navigate('/login')
+      },
+    })
   })
   section.appendChild(logoutBtn)
 
