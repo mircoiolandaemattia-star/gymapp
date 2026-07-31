@@ -1,84 +1,113 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
-import { User, Mail, Lock } from 'lucide'
+import { Dumbbell, User, Mail, Lock } from 'lucide'
+import { register as doRegister } from '/src/utils/auth.js'
+import { authInput } from '/src/components/authInput.js'
+import { passwordStrengthIndicator } from '/src/components/passwordStrengthIndicator.js'
+
+function authLogo() {
+  const logo = document.createElement('div')
+  logo.className = 'auth-logo'
+  const iconBox = document.createElement('div')
+  iconBox.className = 'auth-logo-icon'
+  iconBox.appendChild(createIcon(Dumbbell, 26, 1.5))
+  logo.appendChild(iconBox)
+  const name = document.createElement('span')
+  name.className = 'auth-logo-name'
+  name.textContent = 'FitTrack'
+  logo.appendChild(name)
+  return logo
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function render() {
   const section = document.createElement('section')
   section.className = 'page register-page'
 
+  section.appendChild(authLogo())
+
   const form = document.createElement('form')
   form.className = 'auth-form'
   form.addEventListener('submit', (e) => {
     e.preventDefault()
-    navigate('/onboarding')
+    if (!submitBtn.disabled) submit()
   })
 
-  form.innerHTML = `
-    <h1 class="auth-title">Crea Account</h1>
-    <p class="auth-subtitle">Inizia il tuo percorso</p>
-  `
+  const hTitle = document.createElement('h1')
+  hTitle.className = 'auth-title'
+  hTitle.textContent = 'Crea Account'
+  form.appendChild(hTitle)
+  const hSub = document.createElement('p')
+  hSub.className = 'auth-subtitle'
+  hSub.textContent = 'Inizia il tuo percorso'
+  form.appendChild(hSub)
 
-  const nameGroup = document.createElement('div')
-  nameGroup.className = 'input-group'
-  nameGroup.innerHTML = '<label for="name">Nome</label>'
-  const nameInput = document.createElement('input')
-  nameInput.type = 'text'
-  nameInput.id = 'name'
-  nameInput.className = 'input'
-  nameInput.placeholder = 'Mario'
-  nameInput.required = true
-  const nameWrap = document.createElement('div')
-  nameWrap.style.cssText = 'position:relative'
-  const userIcon = createIcon(User, 18, 2)
-  userIcon.style.cssText = 'position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none'
-  nameInput.style.paddingLeft = '40px'
-  nameWrap.appendChild(userIcon)
-  nameWrap.appendChild(nameInput)
-  nameGroup.appendChild(nameWrap)
-  form.appendChild(nameGroup)
+  const name = authInput({
+    type: 'text',
+    id: 'reg-name',
+    label: 'Nome completo',
+    placeholder: 'Mario Rossi',
+    icon: User,
+    autocomplete: 'name',
+  })
+  form.appendChild(name.el)
 
-  const emailGroup = document.createElement('div')
-  emailGroup.className = 'input-group'
-  emailGroup.innerHTML = '<label for="email">Email</label>'
-  const emailInput = document.createElement('input')
-  emailInput.type = 'email'
-  emailInput.id = 'email'
-  emailInput.className = 'input'
-  emailInput.placeholder = 'mario@email.com'
-  emailInput.required = true
-  const emailWrap = document.createElement('div')
-  emailWrap.style.cssText = 'position:relative'
-  const emailIcon = createIcon(Mail, 18, 2)
-  emailIcon.style.cssText = 'position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none'
-  emailInput.style.paddingLeft = '40px'
-  emailWrap.appendChild(emailIcon)
-  emailWrap.appendChild(emailInput)
-  emailGroup.appendChild(emailWrap)
-  form.appendChild(emailGroup)
+  const email = authInput({
+    type: 'email',
+    id: 'reg-email',
+    label: 'Email',
+    placeholder: 'mario@example.com',
+    icon: Mail,
+    autocomplete: 'email',
+  })
+  form.appendChild(email.el)
 
-  const passGroup = document.createElement('div')
-  passGroup.className = 'input-group'
-  passGroup.innerHTML = '<label for="password">Password</label>'
-  const passInput = document.createElement('input')
-  passInput.type = 'password'
-  passInput.id = 'password'
-  passInput.className = 'input'
-  passInput.placeholder = 'password'
-  passInput.required = true
-  const passWrap = document.createElement('div')
-  passWrap.style.cssText = 'position:relative'
-  const lockIcon = createIcon(Lock, 18, 2)
-  lockIcon.style.cssText = 'position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none'
-  passInput.style.paddingLeft = '40px'
-  passWrap.appendChild(lockIcon)
-  passWrap.appendChild(passInput)
-  passGroup.appendChild(passWrap)
-  form.appendChild(passGroup)
+  const password = authInput({
+    type: 'password',
+    id: 'reg-password',
+    label: 'Password',
+    placeholder: 'Crea una password',
+    icon: Lock,
+    autocomplete: 'new-password',
+  })
+  form.appendChild(password.el)
+
+  const strength = passwordStrengthIndicator()
+  form.appendChild(strength.el)
+
+  const confirm = authInput({
+    type: 'password',
+    id: 'reg-confirm',
+    label: 'Conferma password',
+    placeholder: 'Ripeti la password',
+    icon: Lock,
+    autocomplete: 'new-password',
+  })
+  form.appendChild(confirm.el)
+
+  const termsRow = document.createElement('div')
+  termsRow.className = 'auth-checkbox-row'
+  const checkbox = document.createElement('input')
+  checkbox.type = 'checkbox'
+  checkbox.id = 'reg-terms'
+  const termsLabel = document.createElement('label')
+  termsLabel.setAttribute('for', 'reg-terms')
+  termsLabel.innerHTML = 'Accetto i <a href="#" id="terms-link">termini e condizioni</a>'
+  termsRow.appendChild(checkbox)
+  termsRow.appendChild(termsLabel)
+  form.appendChild(termsRow)
+
+  termsRow.querySelector('#terms-link').addEventListener('click', (e) => {
+    e.preventDefault()
+    alert('Termini e condizioni (demo)')
+  })
 
   const submitBtn = document.createElement('button')
   submitBtn.type = 'submit'
   submitBtn.className = 'btn btn-primary btn-full'
   submitBtn.textContent = 'Registrati'
+  submitBtn.disabled = true
   form.appendChild(submitBtn)
 
   const link = document.createElement('p')
@@ -90,6 +119,49 @@ function render() {
     e.preventDefault()
     navigate('/login')
   })
+
+  name.input.addEventListener('input', validate)
+  email.input.addEventListener('input', () => {
+    if (email.getValue().trim() && !EMAIL_RE.test(email.getValue().trim())) {
+      email.setError('Inserisci un email valida')
+    } else {
+      email.setError()
+    }
+    validate()
+  })
+  password.input.addEventListener('input', () => {
+    strength.update(password.getValue())
+    if (confirm.getValue() && confirm.getValue() !== password.getValue()) {
+      confirm.setError('Le password non coincidono')
+    } else {
+      confirm.setError()
+    }
+    validate()
+  })
+  confirm.input.addEventListener('input', () => {
+    if (confirm.getValue() && confirm.getValue() !== password.getValue()) {
+      confirm.setError('Le password non coincidono')
+    } else {
+      confirm.setError()
+    }
+    validate()
+  })
+  checkbox.addEventListener('change', validate)
+
+  function validate() {
+    const valid =
+      Boolean(name.getValue().trim()) &&
+      EMAIL_RE.test(email.getValue().trim()) &&
+      password.getValue().length >= 8 &&
+      confirm.getValue() === password.getValue() &&
+      checkbox.checked
+    submitBtn.disabled = !valid
+  }
+
+  function submit() {
+    doRegister(name.getValue().trim(), email.getValue().trim())
+    navigate('/onboarding')
+  }
 
   section.appendChild(form)
   return section

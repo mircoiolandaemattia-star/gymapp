@@ -1,3 +1,5 @@
+import { isAuthenticated, isFirstAccess } from '/src/utils/auth.js'
+
 const pages = {
   home: () => import('/src/pages/home.js'),
   scheda: () => import('/src/pages/scheda.js'),
@@ -34,6 +36,21 @@ function isActiveWorkout() {
 async function router(container) {
   const path = window.location.pathname || '/'
   const pageName = resolvePath(path)
+
+  if (!isAuthenticated()) {
+    if (path !== '/login' && path !== '/register') {
+      navigate('/login')
+      return
+    }
+  } else if (isFirstAccess()) {
+    if (path !== '/onboarding') {
+      navigate('/onboarding')
+      return
+    }
+  } else if (path === '/login' || path === '/register' || path === '/onboarding') {
+    navigate('/')
+    return
+  }
 
   try {
     const loader = pages[pageName]

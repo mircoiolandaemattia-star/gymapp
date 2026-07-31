@@ -10,13 +10,16 @@ if ('serviceWorker' in navigator) {
 
 const app = document.getElementById('app')
 
+const AUTH_PATHS = ['/login', '/register', '/onboarding']
+
 function render() {
   app.innerHTML = ''
+  const path = window.location.pathname || '/'
   const page = document.createElement('div')
   page.id = 'page-content'
   app.appendChild(page)
   router(page)
-  if (!isActiveWorkout()) {
+  if (!isActiveWorkout() && !AUTH_PATHS.includes(path)) {
     app.appendChild(bottomNav())
   }
 }

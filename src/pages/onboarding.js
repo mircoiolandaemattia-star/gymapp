@@ -1,6 +1,7 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
 import { Dumbbell } from 'lucide'
+import { completeOnboarding } from '/src/utils/auth.js'
 
 function render() {
   const section = document.createElement('section')
@@ -39,7 +40,10 @@ function render() {
   const startBtn = document.createElement('button')
   startBtn.className = 'btn btn-primary btn-full'
   startBtn.textContent = 'Inizia Allenamento'
-  startBtn.addEventListener('click', () => navigate('/'))
+  startBtn.addEventListener('click', () => {
+    completeOnboarding()
+    navigate('/')
+  })
   content.appendChild(startBtn)
 
   section.appendChild(content)
