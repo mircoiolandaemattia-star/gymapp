@@ -13,20 +13,24 @@ const MOCK_USER = {
 }
 
 function login(email, password) {
-  if (
-    String(email).trim().toLowerCase() === MOCK_USER.email &&
-    String(password) === MOCK_USER.password
-  ) {
+  const stored = storage.get(KEYS.user)
+  const match = [stored, MOCK_USER].filter(Boolean).find((u) => {
+    return (
+      String(email).trim().toLowerCase() === String(u.email).toLowerCase() &&
+      String(password) === String(u.password)
+    )
+  })
+  if (match) {
     storage.set(KEYS.auth, true)
     storage.set(KEYS.firstAccess, true)
-    storage.set(KEYS.user, { name: MOCK_USER.name, email: MOCK_USER.email })
+    storage.set(KEYS.user, { name: match.name, email: match.email, password: match.password })
     return true
   }
   return false
 }
 
-function register(name, email) {
-  storage.set(KEYS.user, { name, email })
+function register(name, email, password) {
+  storage.set(KEYS.user, { name, email, password })
   storage.set(KEYS.auth, true)
   storage.set(KEYS.firstAccess, true)
   return true

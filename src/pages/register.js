@@ -159,7 +159,7 @@ function render() {
   }
 
   function submit() {
-    doRegister(name.getValue().trim(), email.getValue().trim())
+    doRegister(name.getValue().trim(), email.getValue().trim(), password.getValue())
     navigate('/onboarding')
   }
 
