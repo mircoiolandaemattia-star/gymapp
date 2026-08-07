@@ -1507,6 +1507,27 @@ body {
   margin-top: var(--space-md);
 }
 
+.workout-day-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.edit-w-day-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: -4px;
+  margin-bottom: var(--space-sm);
+}
+
+.terms-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
 /* ── History ── */
 
 .history-section {

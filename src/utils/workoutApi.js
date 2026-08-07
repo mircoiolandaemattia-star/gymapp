@@ -13,6 +13,18 @@ export async function saveWorkoutPlan(payload) {
   return data.workoutPlan
 }
 
+export async function updateWorkoutPlan(id, payload) {
+  const data = await apiFetch(`/workout-plans/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  return data.workoutPlan
+}
+
+export async function deleteWorkoutPlan(id) {
+  await apiFetch(`/workout-plans/${id}`, { method: 'DELETE' })
+}
+
 export async function fetchWorkoutSessions() {
   const data = await apiFetch('/workout-sessions')
   return data.workoutSessions || []

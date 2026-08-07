@@ -61,3 +61,65 @@ export async function createWorkoutPlan(req, res, next) {
     next(err)
   }
 }
+
+export async function updateWorkoutPlan(req, res, next) {
+  try {
+    const { id } = req.params
+    const { name, days } = req.body
+
+    const plan = await prisma.workoutPlan.findFirst({ where: { id, userId: req.userId } })
+    if (!plan) return res.status(404).json({ error: 'Allenamento non trovato' })
+
+    const data = {}
+    if (name) data.name = name
+    if (Array.isArray(days)) {
+      data.workoutDays = {
+        deleteMany: {},
+        create: days.map((day, i) => ({
+          dayOfWeek: day.dayOfWeek ?? i + 1,
+          name: day.name ?? null,
+          muscleGroups: day.muscleGroups ?? null,
+          isRestDay: day.isRestDay ?? false,
+          exercises: day.exercises?.length
+            ? {
+                create: day.exercises.map((ex, j) => ({
+                  name: ex.name,
+                  sets: ex.sets ?? 0,
+                  reps: ex.reps ?? 0,
+                  weightKg: ex.weightKg != null ? Number(ex.weightKg) : null,
+                  order: ex.order ?? j + 1,
+                })),
+              }
+            : undefined,
+        })),
+      }
+    }
+
+    const updated = await prisma.workoutPlan.update({
+      where: { id },
+      data,
+      include: {
+        workoutDays: { orderBy: { dayOfWeek: 'asc' }, include: { exercises: { orderBy: { order: 'asc' } } } },
+      },
+    })
+
+    res.json({ workoutPlan: updated })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteWorkoutPlan(req, res, next) {
+  try {
+    const { id } = req.params
+
+    const plan = await prisma.workoutPlan.findFirst({ where: { id, userId: req.userId } })
+    if (!plan) return res.status(404).json({ error: 'Allenamento non trovato' })
+
+    await prisma.workoutPlan.delete({ where: { id } })
+
+    res.status(204).end()
+  } catch (err) {
+    next(err)
+  }
+}

@@ -1,12 +1,13 @@
 import { createIcon } from '/src/utils/icons.js'
-import { Plus, Dumbbell } from 'lucide'
+import { Plus, Dumbbell, Trash2, X } from 'lucide'
 import { navigate } from '/src/utils/router.js'
-import { fetchWorkoutPlans, fetchWorkoutSessions, toDayCard, toHistoryItem } from '/src/utils/workoutApi.js'
+import { fetchWorkoutPlans, fetchWorkoutSessions, deleteWorkoutPlan, toDayCard, toHistoryItem } from '/src/utils/workoutApi.js'
 import { workoutDayCard } from '/src/components/workoutDayCard.js'
 import { workoutHistoryList } from '/src/components/workoutHistoryList.js'
 import { createWorkoutModal } from '/src/components/createWorkoutModal.js'
 import { uploadWorkoutModal } from '/src/components/uploadWorkoutModal.js'
 import { generateWorkoutModal } from '/src/components/generateWorkoutModal.js'
+import { editWorkoutModal } from '/src/components/editWorkoutModal.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 function render() {
@@ -15,7 +16,7 @@ function render() {
 
   section.appendChild(buildHeader())
 
-  const loader = loadingEl('Caricamento schede...')
+  const loader = loadingEl('Caricamento allenamenti...')
   section.appendChild(loader)
 
   load(section, loader)
@@ -65,22 +66,28 @@ function renderContent(section, plans, sessions) {
 
   const schedulesTitle = document.createElement('h2')
   schedulesTitle.className = 'section-title'
-  schedulesTitle.textContent = 'Le mie schede'
+  schedulesTitle.textContent = 'I miei allenamenti'
   section.appendChild(schedulesTitle)
 
   const list = document.createElement('div')
   list.className = 'workout-schedule-list'
 
-  const days = plans.flatMap((plan) => plan.workoutDays.map((day) => toDayCard(day, plan.name)))
+  const allDays = plans.flatMap((plan) => plan.workoutDays.map((day) => ({ plan, day })))
 
-  if (!days.length) {
+  if (!allDays.length) {
     const empty = document.createElement('div')
     empty.className = 'card scheda-empty'
-    empty.textContent = 'Nessuna scheda ancora. Crea la tua prima scheda!'
+    empty.textContent = 'Nessun allenamento ancora. Crea il tuo primo allenamento!'
     list.appendChild(empty)
   } else {
-    days.forEach((day) => {
-      list.appendChild(workoutDayCard(day))
+    allDays.forEach(({ plan, day }) => {
+      const card = toDayCard(day, plan.name)
+      list.appendChild(
+        workoutDayCard(card, {
+          onEdit: () => openEditWorkout(plan, day),
+          onDelete: () => confirmDeletePlan(plan),
+        })
+      )
     })
   }
   section.appendChild(list)
@@ -90,6 +97,81 @@ function renderContent(section, plans, sessions) {
     const historySection = workoutHistoryList(history)
     historySection.className = 'history-section'
     section.appendChild(historySection)
+  }
+}
+
+function openEditWorkout(plan, day) {
+  editWorkoutModal({ plan, day, onSaved: reload })
+}
+
+function confirmDeletePlan(plan) {
+  const overlay = document.createElement('div')
+  overlay.className = 'modal-overlay'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
+
+  const modal = document.createElement('div')
+  modal.className = 'modal'
+  modal.style.cssText = 'max-width:380px;align-self:center;border-radius:var(--radius-xl)'
+
+  const header = document.createElement('div')
+  header.className = 'modal-header'
+  const hTitle = document.createElement('h2')
+  hTitle.className = 'modal-title'
+  hTitle.textContent = 'Elimina allenamento'
+  header.appendChild(hTitle)
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'modal-close'
+  closeBtn.appendChild(createIcon(X, 20, 2))
+  closeBtn.addEventListener('click', close)
+  header.appendChild(closeBtn)
+  modal.appendChild(header)
+
+  const body = document.createElement('div')
+  body.className = 'modal-body'
+  body.style.cssText = 'display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--space-sm)'
+  const iconBox = document.createElement('div')
+  iconBox.className = 'plan-icon'
+  iconBox.style.cssText = 'color:var(--error);background:rgba(248,113,113,0.12);border-color:rgba(248,113,113,0.3)'
+  iconBox.appendChild(createIcon(Trash2, 24, 2))
+  body.appendChild(iconBox)
+  const text = document.createElement('p')
+  text.style.cssText = 'font-size:0.875rem;color:var(--text-secondary)'
+  text.textContent = `Eliminare definitivamente l'allenamento "${plan.name}"? Tutti i giorni ed esercizi verranno rimossi.`
+  body.appendChild(text)
+  modal.appendChild(body)
+
+  const footer = document.createElement('div')
+  footer.className = 'modal-footer'
+  footer.style.cssText = 'display:flex;gap:var(--space-sm)'
+  const cancelBtn = document.createElement('button')
+  cancelBtn.className = 'btn btn-outline'
+  cancelBtn.style.cssText = 'flex:1'
+  cancelBtn.textContent = 'Annulla'
+  cancelBtn.addEventListener('click', close)
+  footer.appendChild(cancelBtn)
+  const confirmBtn = document.createElement('button')
+  confirmBtn.className = 'btn btn-error'
+  confirmBtn.style.cssText = 'flex:1'
+  confirmBtn.textContent = 'Elimina'
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true
+    try {
+      await deleteWorkoutPlan(plan.id)
+      close()
+      reload()
+    } catch (err) {
+      alert(err.message || 'Errore nell\'eliminazione')
+      confirmBtn.disabled = false
+    }
+  })
+  footer.appendChild(confirmBtn)
+  modal.appendChild(footer)
+
+  overlay.appendChild(modal)
+  document.body.appendChild(overlay)
+
+  function close() {
+    document.body.removeChild(overlay)
   }
 }
 

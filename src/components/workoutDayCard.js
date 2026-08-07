@@ -1,8 +1,8 @@
 import { createIcon } from '/src/utils/icons.js'
-import { ChevronDown, ChevronUp, Dumbbell, Clock, Play } from 'lucide'
+import { ChevronDown, ChevronUp, Dumbbell, Clock, Play, Pencil, Trash2 } from 'lucide'
 import { navigate } from '/src/utils/router.js'
 
-function workoutDayCard(day) {
+function workoutDayCard(day, { onEdit, onDelete } = {}) {
   const card = document.createElement('div')
   card.className = 'card workout-day-card'
   let expanded = false
@@ -55,6 +55,34 @@ function workoutDayCard(day) {
     navigate(`/scheda/allenamento/${day.id}`)
   })
   main.appendChild(startBtn)
+
+  if (onEdit || onDelete) {
+    const actions = document.createElement('div')
+    actions.className = 'workout-day-actions'
+    if (onEdit) {
+      const editBtn = document.createElement('button')
+      editBtn.className = 'btn-icon-sm'
+      editBtn.setAttribute('aria-label', 'Modifica allenamento')
+      editBtn.appendChild(createIcon(Pencil, 16, 2))
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        onEdit()
+      })
+      actions.appendChild(editBtn)
+    }
+    if (onDelete) {
+      const delBtn = document.createElement('button')
+      delBtn.className = 'btn-icon-sm btn-icon-danger'
+      delBtn.setAttribute('aria-label', 'Elimina allenamento')
+      delBtn.appendChild(createIcon(Trash2, 16, 2))
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        onDelete()
+      })
+      actions.appendChild(delBtn)
+    }
+    main.appendChild(actions)
+  }
 
   card.appendChild(main)
 
