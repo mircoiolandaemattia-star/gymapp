@@ -1,7 +1,15 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Camera, Loader, Save } from 'lucide'
-import { photoLimit, photoUsedToday, usePhotoSlot } from '/src/mock/dietData.js'
 import { freeLimitBanner } from '/src/components/freeLimitBanner.js'
+import { apiFetch } from '/src/utils/api.js'
+import { getUser } from '/src/utils/auth.js'
+
+const PHOTO_LIMIT_FREE = 2
+
+function photoLimit() {
+  const u = getUser()
+  return u.isPremium || u.isTrial ? Infinity : PHOTO_LIMIT_FREE
+}
 
 function photoRecognitionFlow({ mealName, onFoodAdded }) {
   const overlay = document.createElement('div')
@@ -34,15 +42,45 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
   fileInput.style.display = 'none'
   body.appendChild(fileInput)
 
-  if (photoUsedToday >= photoLimit) {
-    body.appendChild(freeLimitBanner({ used: photoUsedToday, max: photoLimit, onClose: close }))
-  } else {
+  const limit = photoLimit()
+  let used = limit
+
+  if (limit === Infinity) {
+    used = 0
     showPick()
+  } else {
+    body.appendChild(createLoading())
+    apiFetch('/ai-usage/today?action=photo_recognition')
+      .then((data) => {
+        used = data.count || 0
+        body.innerHTML = ''
+        if (used >= limit) {
+          body.appendChild(freeLimitBanner({ used, max: limit, onClose: close }))
+        } else {
+          showPick()
+        }
+      })
+      .catch(() => {
+        body.innerHTML = ''
+        showPick()
+      })
   }
 
   modal.appendChild(body)
   overlay.appendChild(modal)
   document.body.appendChild(overlay)
+
+  function createLoading() {
+    const loading = document.createElement('div')
+    loading.className = 'photo-loading'
+    const sp = createIcon(Loader, 28, 2)
+    sp.classList.add('spin')
+    loading.appendChild(sp)
+    const lt = document.createElement('p')
+    lt.textContent = 'Verifica utilizzo giornaliero...'
+    loading.appendChild(lt)
+    return loading
+  }
 
   function showPick() {
     body.innerHTML = ''
@@ -71,7 +109,7 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
 
     const hint = document.createElement('p')
     hint.className = 'photo-limit-hint'
-    hint.textContent = `Foto usate oggi: ${photoUsedToday}/${photoLimit}`
+    hint.textContent = limit === Infinity ? 'Foto illimitate' : `Foto usate oggi: ${used}/${limit}`
     pick.appendChild(hint)
 
     body.appendChild(pick)
@@ -194,8 +232,15 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
     const cLabel = document.createElement('span')
     cLabel.textContent = 'Conferma e aggiungi'
     confirmBtn.appendChild(cLabel)
-    confirmBtn.addEventListener('click', () => {
-      usePhotoSlot()
+    confirmBtn.addEventListener('click', async () => {
+      try {
+        await apiFetch('/ai-usage', {
+          method: 'POST',
+          body: JSON.stringify({ actionType: 'photo_recognition' }),
+        })
+      } catch (err) {
+        // registrazione utilizzo non bloccante
+      }
       onFoodAdded({
         name: nameInput.value.trim() || 'Pasto analizzato',
         qtyLabel: '1 porzione',

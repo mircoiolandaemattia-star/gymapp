@@ -1,23 +1,58 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, CheckCircle, SkipForward, Play, Flag, Timer } from 'lucide'
-import { workoutSchedules } from '/src/mock/workoutData.js'
 import { navigate } from '/src/utils/router.js'
+import { fetchWorkoutPlans, saveWorkoutSession } from '/src/utils/workoutApi.js'
+import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 function render() {
+  const section = document.createElement('section')
+  section.className = 'page active-workout-page'
+
+  const loader = loadingEl('Caricamento allenamento...')
+  section.appendChild(loader)
+
   const path = window.location.pathname
   const dayId = path.split('/').pop()
-  const day = workoutSchedules.find((d) => d.id === dayId)
+
+  load(section, loader, dayId)
+
+  return section
+}
+
+async function load(section, loader, dayId) {
+  let plan = null
+  let day = null
+  try {
+    const plans = await fetchWorkoutPlans()
+    for (const p of plans) {
+      const found = (p.workoutDays || []).find((d) => d.id === dayId)
+      if (found) {
+        plan = p
+        day = found
+        break
+      }
+    }
+  } catch (err) {
+    section.removeChild(loader)
+    const errCard = errorEl(err.message)
+    errCard.retry.addEventListener('click', () => { window.location.reload() })
+    section.appendChild(errCard.el)
+    return
+  }
+
   if (!day) {
-    const section = document.createElement('section')
-    section.className = 'page'
+    section.removeChild(loader)
     const h2 = document.createElement('h2')
     h2.textContent = 'Allenamento non trovato'
     section.appendChild(h2)
-    return section
+    return
   }
 
-  const section = document.createElement('section')
-  section.className = 'page active-workout-page'
+  buildWorkout(section, plan, day)
+}
+
+function buildWorkout(section, plan, day) {
+  section.innerHTML = ''
 
   const header = document.createElement('div')
   header.className = 'active-header'
@@ -25,7 +60,7 @@ function render() {
   const left = document.createElement('div')
   const hTitle = document.createElement('h1')
   hTitle.className = 'active-title'
-  hTitle.textContent = day.name
+  hTitle.textContent = day.name || plan.name
   left.appendChild(hTitle)
   header.appendChild(left)
 
@@ -41,9 +76,17 @@ function render() {
 
   section.appendChild(header)
 
-  const totalExercises = day.exercises.length
+  const exercises = (day.exercises || []).map((ex) => ({
+    id: ex.id,
+    name: ex.name,
+    sets: ex.sets,
+    reps: ex.reps,
+    weight: ex.weightKg ?? 0,
+  }))
+
+  const totalExercises = exercises.length
   let currentExIndex = 0
-  const seriesCompleted = day.exercises.map(() => [])
+  const seriesCompleted = exercises.map(() => [])
   const startTime = Date.now()
   let restTimerId = null
 
@@ -69,7 +112,7 @@ function render() {
     progress.appendChild(progBar)
     area.appendChild(progress)
 
-    const ex = day.exercises[currentExIndex]
+    const ex = exercises[currentExIndex]
 
     const exCard = document.createElement('div')
     exCard.className = 'card'
@@ -120,7 +163,7 @@ function render() {
 
       const doneBtn = document.createElement('button')
       doneBtn.className = 'active-done-btn' + (isCompleted ? ' done' : '')
-      const doneIcon = isCompleted ? createIcon(CheckCircle, 20, 2) : createIcon(CheckCircle, 20, 2)
+      const doneIcon = createIcon(CheckCircle, 20, 2)
       doneBtn.appendChild(doneIcon)
       if (!isCompleted) {
         doneBtn.addEventListener('click', () => {
@@ -166,48 +209,51 @@ function render() {
       const eLabel = document.createElement('span')
       eLabel.textContent = 'Termina allenamento'
       endBtn.appendChild(eLabel)
-      endBtn.addEventListener('click', () => {
-        if (restTimerId) { clearInterval(restTimerId); restTimerId = null }
-        const elapsed = Math.round((Date.now() - startTime) / 60000)
-        const calories = Math.round(elapsed * 7)
-
-        const session = {
-          id: Date.now(),
-          name: day.name,
-          type: day.type,
-          date: new Date().toISOString(),
-          duration: elapsed,
-          calories,
-        }
-        const stored = JSON.parse(localStorage.getItem('fittrack_history') || '[]')
-        stored.unshift(session)
-        localStorage.setItem('fittrack_history', JSON.stringify(stored.slice(0, 50)))
-
-        const confirmMsg = document.createElement('div')
-        confirmMsg.className = 'active-completed'
-        const cIcon = createIcon(CheckCircle, 40, 1.5)
-        cIcon.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
-        confirmMsg.appendChild(cIcon)
-        const cTitle = document.createElement('h2')
-        cTitle.textContent = 'Allenamento completato!'
-        confirmMsg.appendChild(cTitle)
-        const cDetail = document.createElement('p')
-        cDetail.textContent = `${elapsed} min · ${calories} kcal bruciate`
-        confirmMsg.appendChild(cDetail)
-        const cBtn = document.createElement('button')
-        cBtn.className = 'btn btn-primary'
-        cBtn.textContent = 'Torna alla scheda'
-        cBtn.addEventListener('click', () => navigate('/scheda'))
-        confirmMsg.appendChild(cBtn)
-
-        section.querySelectorAll('.active-exercise-area, .active-header').forEach((el) => el.style.display = 'none')
-        section.appendChild(confirmMsg)
-      })
+      endBtn.addEventListener('click', finishWorkout)
       navRow.appendChild(endBtn)
     }
 
     area.appendChild(navRow)
     section.appendChild(area)
+  }
+
+  async function finishWorkout() {
+    if (restTimerId) { clearInterval(restTimerId); restTimerId = null }
+    const elapsed = Math.round((Date.now() - startTime) / 60000)
+    const calories = Math.round(elapsed * 7)
+
+    try {
+      await saveWorkoutSession({
+        planId: plan.id,
+        dayId: day.id,
+        startedAt: new Date(startTime).toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMinutes: Math.max(1, elapsed),
+        caloriesBurned: calories,
+      })
+    } catch (err) {
+      alert(err.message || 'Errore nel salvataggio della sessione')
+    }
+
+    const confirmMsg = document.createElement('div')
+    confirmMsg.className = 'active-completed'
+    const cIcon = createIcon(CheckCircle, 40, 1.5)
+    cIcon.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
+    confirmMsg.appendChild(cIcon)
+    const cTitle = document.createElement('h2')
+    cTitle.textContent = 'Allenamento completato!'
+    confirmMsg.appendChild(cTitle)
+    const cDetail = document.createElement('p')
+    cDetail.textContent = `${elapsed} min · ${calories} kcal bruciate`
+    confirmMsg.appendChild(cDetail)
+    const cBtn = document.createElement('button')
+    cBtn.className = 'btn btn-primary'
+    cBtn.textContent = 'Torna alla scheda'
+    cBtn.addEventListener('click', () => navigate('/scheda'))
+    confirmMsg.appendChild(cBtn)
+
+    section.querySelectorAll('.active-exercise-area, .active-header').forEach((el) => el.style.display = 'none')
+    section.appendChild(confirmMsg)
   }
 
   function startRestTimer(area, exCard) {
@@ -258,8 +304,6 @@ function render() {
   }
 
   renderExercise()
-
-  return section
 }
 
 export { render }

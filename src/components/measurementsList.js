@@ -39,6 +39,7 @@ function measurementsList({ measurements, onAdd }) {
 
   rows.forEach((r) => {
     const value = latest[r.key]
+    if (value == null) return
     const delta = value - (prev[r.key] ?? value)
 
     const row = document.createElement('div')

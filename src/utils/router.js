@@ -1,4 +1,4 @@
-import { isAuthenticated, isFirstAccess } from '/src/utils/auth.js'
+import { isAuthenticated, getUser, refreshUser } from '/src/utils/auth.js'
 
 const pages = {
   home: () => import('/src/pages/home.js'),
@@ -33,6 +33,16 @@ function isActiveWorkout() {
   return window.location.pathname.startsWith('/scheda/allenamento/')
 }
 
+async function ensureUser() {
+  const cached = getUser()
+  if (cached && cached.id) return cached
+  try {
+    return await refreshUser()
+  } catch {
+    return null
+  }
+}
+
 async function router(container) {
   const path = window.location.pathname || '/'
   const pageName = resolvePath(path)
@@ -42,14 +52,17 @@ async function router(container) {
       navigate('/login')
       return
     }
-  } else if (isFirstAccess()) {
-    if (path !== '/onboarding') {
+  } else {
+    const user = await ensureUser()
+    const onAuthPage = path === '/login' || path === '/register' || path === '/onboarding'
+    if (user && !user.acceptedDisclaimer && path !== '/onboarding') {
       navigate('/onboarding')
       return
     }
-  } else if (path === '/login' || path === '/register' || path === '/onboarding') {
-    navigate('/')
-    return
+    if (user && user.acceptedDisclaimer && onAuthPage) {
+      navigate('/')
+      return
+    }
   }
 
   try {

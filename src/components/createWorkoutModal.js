@@ -1,8 +1,13 @@
 import { createIcon } from '/src/utils/icons.js'
-import { X, Plus, Trash2, ArrowUp, ArrowDown, Save } from 'lucide'
+import { X, Plus, Trash2, ArrowUp, ArrowDown, Save, Loader } from 'lucide'
 import { predefinedExercises } from '/src/mock/workoutData.js'
+import { saveWorkoutPlan } from '/src/utils/workoutApi.js'
 
-function createWorkoutModal(onClose) {
+const DAY_NUM = {
+  Lunedì: 1, Martedì: 2, Mercoledì: 3, Giovedì: 4, Venerdì: 5, Sabato: 6, Domenica: 7,
+}
+
+function createWorkoutModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal() })
@@ -206,13 +211,45 @@ function createWorkoutModal(onClose) {
   const saveLabel = document.createElement('span')
   saveLabel.textContent = 'Salva scheda'
   saveBtn.appendChild(saveLabel)
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     const day = daySelect.value
     const type = typeSelect.value.toUpperCase()
     const name = nameInput.value || 'Allenamento'
-    const result = { day, type, name, exercises: exercises.map((e) => ({ ...e })) }
-    localStorage.setItem('fittrack_custom_workout', JSON.stringify(result))
-    closeModal()
+
+    saveBtn.disabled = true
+    saveBtn.classList.add('btn-loading')
+    saveBtn.appendChild(createIcon(Loader, 16, 2))
+
+    try {
+      await saveWorkoutPlan({
+        name,
+        source: 'manual',
+        days: [
+          {
+            dayOfWeek: DAY_NUM[day] || 1,
+            name: `${day} - ${name}`,
+            muscleGroups: '',
+            isRestDay: false,
+            exercises: exercises
+              .filter((e) => e.name.trim())
+              .map((e, i) => ({
+                name: e.name.trim(),
+                sets: Number(e.sets) || 0,
+                reps: Number(e.reps) || 0,
+                weightKg: Number(e.weight) || 0,
+                order: i + 1,
+              })),
+          },
+        ],
+      })
+      closeModal()
+      if (onSaved) onSaved()
+    } catch (err) {
+      alert(err.message || 'Errore nel salvataggio della scheda')
+      saveBtn.disabled = false
+      saveBtn.classList.remove('btn-loading')
+      saveBtn.querySelector('svg')?.remove()
+    }
   })
   footer.appendChild(saveBtn)
   modal.appendChild(footer)
@@ -224,7 +261,6 @@ function createWorkoutModal(onClose) {
 
   function closeModal() {
     document.body.removeChild(overlay)
-    if (onClose) onClose()
   }
 }
 

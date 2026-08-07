@@ -1,7 +1,8 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Upload, FileText, CheckCircle, Loader, Save } from 'lucide'
+import { saveWorkoutPlan } from '/src/utils/workoutApi.js'
 
-function uploadWorkoutModal(onClose) {
+function uploadWorkoutModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal() })
@@ -137,8 +138,28 @@ function uploadWorkoutModal(onClose) {
   const confLabel = document.createElement('span')
   confLabel.textContent = 'Conferma e salva'
   confirmBtn.appendChild(confLabel)
-  confirmBtn.addEventListener('click', () => {
-    closeModal()
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true
+    confirmBtn.classList.add('btn-loading')
+    confirmBtn.appendChild(createIcon(Loader, 16, 2))
+    try {
+      await saveWorkoutPlan({
+        name: 'Scheda importata',
+        source: 'upload',
+        days: [
+          { dayOfWeek: 1, name: 'Lunedì', exercises: [{ name: 'Panca piana', sets: 4, reps: 10, weightKg: 60, order: 1 }] },
+          { dayOfWeek: 3, name: 'Mercoledì', exercises: [{ name: 'Squat', sets: 4, reps: 10, weightKg: 70, order: 1 }] },
+          { dayOfWeek: 5, name: 'Venerdì', exercises: [{ name: 'Stacco', sets: 4, reps: 8, weightKg: 80, order: 1 }] },
+        ],
+      })
+      closeModal()
+      if (onSaved) onSaved()
+    } catch (err) {
+      alert(err.message || 'Errore nel salvataggio della scheda')
+      confirmBtn.disabled = false
+      confirmBtn.classList.remove('btn-loading')
+      confirmBtn.querySelector('svg')?.remove()
+    }
   })
   footer.appendChild(confirmBtn)
   modal.appendChild(footer)
@@ -148,7 +169,6 @@ function uploadWorkoutModal(onClose) {
 
   function closeModal() {
     document.body.removeChild(overlay)
-    if (onClose) onClose()
   }
 }
 

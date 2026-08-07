@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  email             String @unique
+  name              String
+  passwordHash      String @map("password_hash")
+  isPremium         Boolean @default(false) @map("is_premium")
+  isTrial           Boolean @default(false) @map("is_trial")
+  trialEndsAt       DateTime? @map("trial_ends_at")
+  goal              String?
+  age               Int?
+  weightKg          Float? @map("weight_kg") @db.DoublePrecision
+  heightCm          Float? @map("height_cm") @db.DoublePrecision
+  gender            String?
+  activityLevel     String? @map("activity_level")
+  dailyCalories     Int? @map("daily_calories")
+  acceptedDisclaimer Boolean @default(false) @map("accepted_disclaimer")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  workoutPlans      WorkoutPlan[]
+  dietPlans         DietPlan[]
+  bodyMeasurements  BodyMeasurement[]
+  progressPhotos    ProgressPhoto[]
+  reminders         Reminder[]
+  meals             Meal[]
+  workoutSessions   WorkoutSession[]
+  aiUsageLogs       AiUsageLog[]
+
+  @@map("users")
+}
+
+model WorkoutPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutDays     WorkoutDay[]
+  workoutSessions WorkoutSession[]
+
+  @@index([userId])
+  @@map("workout_plans")
+}
+
+model WorkoutDay {
+  id          String   @id @default(uuid()) @db.Uuid
+  planId      String   @map("plan_id") @db.Uuid
+  dayOfWeek   Int    @map("day_of_week")
+  name        String?
+  muscleGroups String? @map("muscle_groups")
+  isRestDay   Boolean @default(false) @map("is_rest_day")
+
+  plan            WorkoutPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercises       Exercise[]
+  workoutSessions WorkoutSession[]
+
+  @@index([planId])
+  @@map("workout_days")
+}
+
+model Exercise {
+  id       String   @id @default(uuid()) @db.Uuid
+  dayId    String   @map("day_id") @db.Uuid
+  name     String
+  sets     Int
+  reps     Int
+  weightKg Float? @map("weight_kg") @db.DoublePrecision
+  order    Int
+
+  day WorkoutDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  @@index([dayId])
+  @@map("exercises")
+}
+
+model WorkoutSession {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @map("user_id") @db.Uuid
+  planId          String?     @map("plan_id") @db.Uuid
+  dayId           String?     @map("day_id") @db.Uuid
+  startedAt       DateTime? @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationMinutes Int?      @map("duration_minutes")
+  caloriesBurned  Int?      @map("calories_burned")
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan WorkoutPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  day  WorkoutDay?  @relation(fields: [dayId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([planId])
+  @@index([dayId])
+  @@map("workout_sessions")
+}
+
+model DietPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals Meal[]
+
+  @@index([userId])
+  @@map("diet_plans")
+}
+
+model Meal {
+  id           String   @id @default(uuid()) @db.Uuid
+  dietPlanId   String?  @map("diet_plan_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  type         String?
+  date         DateTime @map("date") @db.Date
+  totalCalories Int?  @map("total_calories")
+
+  dietPlan  DietPlan?  @relation(fields: [dietPlanId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodItems FoodItem[]
+
+  @@index([userId, date])
+  @@index([dietPlanId])
+  @@map("meals")
+}
+
+model FoodItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  mealId     String   @map("meal_id") @db.Uuid
+  name       String
+  quantityG  Float? @map("quantity_g") @db.DoublePrecision
+  calories   Int?
+  proteinG   Float? @map("protein_g") @db.DoublePrecision
+  carbsG     Float? @map("carbs_g") @db.DoublePrecision
+  fatsG      Float? @map("fats_g") @db.DoublePrecision
+  source     String?
+  barcode    String?
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@index([mealId])
+  @@map("food_items")
+}
+
+model BodyMeasurement {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  weightKg  Float?   @map("weight_kg") @db.DoublePrecision
+  waistCm   Float?   @map("waist_cm") @db.DoublePrecision
+  chestCm   Float?   @map("chest_cm") @db.DoublePrecision
+  armsCm    Float?   @map("arms_cm") @db.DoublePrecision
+  hipsCm    Float?   @map("hips_cm") @db.DoublePrecision
+  measuredAt DateTime @map("measured_at") @db.Date
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("body_measurements")
+}
+
+model ProgressPhoto {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  photoUrl String @map("photo_url")
+  takenAt  DateTime @map("taken_at") @db.Date
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("progress_photos")
+}
+
+model Reminder {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  type        String?
+  daysOfWeek  String? @map("days_of_week")
+  time        DateTime? @db.Time
+  message     String?
+  isActive    Boolean @default(true) @map("is_active")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("reminders")
+}
+
+model AiUsageLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  actionType String @map("action_type")
+  usedOn     DateTime @map("used_on") @db.Date
+  count      Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("ai_usage_log")
+}

@@ -1,8 +1,9 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
-import { completeOnboarding, getUser } from '/src/utils/auth.js'
+import { completeOnboarding, getUser, setUser, goalToApi, activityToApi, sexToApi } from '/src/utils/auth.js'
+import { apiFetch } from '/src/utils/api.js'
 import { storage } from '/src/utils/storage.js'
-import { calculateCalories } from '/src/utils/calorieCalculator.js'
+import { calculateCalories, calculateMacros } from '/src/utils/calorieCalculator.js'
 import { onboardingProgressBar } from '/src/components/onboardingProgressBar.js'
 import { goalOptions, activityOptions, SEX_OPTIONS } from '/src/mock/profileData.js'
 import {
@@ -17,6 +18,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Loader,
 } from 'lucide'
 
 const TOTAL_STEPS = 5
@@ -42,6 +44,32 @@ const data = {
   goal: '',
   activity: '',
   terms: false,
+}
+
+let apiResult = null
+let summaryError = null
+let fetchingSummary = false
+
+function onboardingPayload() {
+  return {
+    name: data.name.trim(),
+    age: Number(data.eta),
+    weightKg: Number(String(data.peso).replace(',', '.')),
+    heightCm: Number(String(data.altezza).replace(',', '.')),
+    gender: sexToApi[data.sesso] || 'other',
+    goal: goalToApi[data.goal],
+    activityLevel: activityToApi[data.activity],
+    acceptedDisclaimer: data.terms,
+  }
+}
+
+async function fetchOnboardingResult() {
+  const res = await apiFetch('/user/onboarding', {
+    method: 'POST',
+    body: JSON.stringify(onboardingPayload()),
+  })
+  apiResult = res
+  return res
 }
 
 function el(tag, className, text) {
@@ -316,6 +344,13 @@ function buildSummaryStep() {
   const frag = document.createDocumentFragment()
   frag.appendChild(stepHeader('Tutto pronto!', 'Ecco il tuo fabbisogno calorico giornaliero'))
 
+  if (!apiResult && !fetchingSummary) {
+    fetchingSummary = true
+    fetchOnboardingResult()
+      .catch((err) => { summaryError = err.message || 'Errore di connessione' })
+      .finally(() => { fetchingSummary = false; render() })
+  }
+
   const result = calculateCalories({
     sex: data.sesso,
     weightKg: Number(data.peso),
@@ -324,6 +359,9 @@ function buildSummaryStep() {
     activity: data.activity,
     goal: data.goal,
   })
+
+  const calories = apiResult ? apiResult.dailyCalories : result.calories
+  const macros = calculateMacros(calories)
 
   const ringWrap = el('div', 'onb-ring')
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -359,10 +397,32 @@ function buildSummaryStep() {
   ringWrap.appendChild(svg)
 
   const center = el('div', 'onb-ring-center')
-  center.appendChild(el('span', 'onb-ring-value', String(result.calories)))
-  center.appendChild(el('span', 'onb-ring-unit', 'kcal/giorno'))
+  if (apiResult) {
+    center.appendChild(el('span', 'onb-ring-value', String(calories)))
+    center.appendChild(el('span', 'onb-ring-unit', 'kcal/giorno'))
+  } else {
+    const spin = createIcon(Loader, 26, 2)
+    spin.classList.add('spin')
+    center.appendChild(spin)
+    center.appendChild(el('span', 'onb-ring-unit', 'Calcolo...'))
+  }
   ringWrap.appendChild(center)
   frag.appendChild(ringWrap)
+
+  if (summaryError) {
+    const errBox = el('div', 'onb-error')
+    errBox.textContent = summaryError
+    frag.appendChild(errBox)
+    const retry = document.createElement('button')
+    retry.type = 'button'
+    retry.className = 'btn btn-outline'
+    retry.textContent = 'Riprova'
+    retry.addEventListener('click', () => {
+      summaryError = null
+      render()
+    })
+    frag.appendChild(retry)
+  }
 
   const meta = el('div', 'onb-meta')
   const rows = [
@@ -383,7 +443,7 @@ function buildSummaryStep() {
 
   const stack = el('div', 'onb-macro-stack')
   const stackColors = ['var(--accent)', 'var(--info)', 'var(--warning)']
-  Object.values(result.macros).forEach((m, i) => {
+  Object.values(macros).forEach((m, i) => {
     const seg = document.createElement('div')
     seg.className = 'onb-macro-seg'
     seg.style.width = `${m.pct}%`
@@ -394,7 +454,7 @@ function buildSummaryStep() {
   macroCard.appendChild(stack)
 
   const legend = el('div', 'onb-macro-legend')
-  Object.values(result.macros).forEach((m, i) => {
+  Object.values(macros).forEach((m, i) => {
     const item = el('div', 'onb-macro-item')
     const dot = el('span', 'onb-macro-dot')
     dot.style.background = stackColors[i]
@@ -486,31 +546,45 @@ function handleNext() {
   }
 }
 
-function saveAndStart() {
-  const result = calculateCalories({
-    sex: data.sesso,
-    weightKg: Number(data.peso),
-    heightCm: Number(data.altezza),
-    age: Number(data.eta),
-    activity: data.activity,
-    goal: data.goal,
-  })
+async function saveAndStart() {
+  const errEl = currentSection.querySelector('.onb-error')
+  const nextBtn = currentSection.querySelector('.onb-next')
 
-  storage.set('ft_profile', {
-    name: data.name.trim(),
-    eta: Number(data.eta),
-    sesso: data.sesso,
-    peso: Number(data.peso),
-    altezza: Number(data.altezza),
-    goal: data.goal,
-    activity: data.activity,
-    calories: result.calories,
-    macros: result.macros,
-    updatedAt: new Date().toISOString(),
-  })
+  if (nextBtn) {
+    nextBtn.disabled = true
+    nextBtn.classList.add('btn-loading')
+  }
 
-  completeOnboarding()
-  navigate('/')
+  try {
+    const res = apiResult || (await fetchOnboardingResult())
+    const calories = res.dailyCalories
+    const macros = calculateMacros(calories)
+
+    storage.set('ft_profile', {
+      name: data.name.trim(),
+      eta: Number(data.eta),
+      sesso: data.sesso,
+      peso: Number(data.peso),
+      altezza: Number(data.altezza),
+      goal: data.goal,
+      activity: data.activity,
+      calories,
+      macros,
+      updatedAt: new Date().toISOString(),
+    })
+
+    setUser(res.user)
+    completeOnboarding()
+    navigate('/')
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message || 'Errore di salvataggio, riprova'
+    }
+    if (nextBtn) {
+      nextBtn.disabled = false
+      nextBtn.classList.remove('btn-loading')
+    }
+  }
 }
 
 export { render }

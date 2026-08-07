@@ -1,6 +1,6 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
-import { Dumbbell, User, Mail, Lock } from 'lucide'
+import { Dumbbell, User, Mail, Lock, Loader } from 'lucide'
 import { register as doRegister } from '/src/utils/auth.js'
 import { authInput } from '/src/components/authInput.js'
 import { passwordStrengthIndicator } from '/src/components/passwordStrengthIndicator.js'
@@ -115,6 +115,12 @@ function render() {
   link.innerHTML = 'Hai già un account? <a href="#" id="login-link">Accedi</a>'
   form.appendChild(link)
 
+  const errorBox = document.createElement('div')
+  errorBox.className = 'auth-error'
+  errorBox.setAttribute('role', 'alert')
+  errorBox.hidden = true
+  form.appendChild(errorBox)
+
   form.querySelector('#login-link').addEventListener('click', (e) => {
     e.preventDefault()
     navigate('/login')
@@ -159,8 +165,26 @@ function render() {
   }
 
   function submit() {
+    errorBox.textContent = ''
+    errorBox.hidden = true
+    submitBtn.disabled = true
+    submitBtn.classList.add('btn-loading')
+    submitBtn.appendChild(createIcon(Loader, 16, 2))
+
     doRegister(name.getValue().trim(), email.getValue().trim(), password.getValue())
-    navigate('/onboarding')
+      .then(() => {
+        navigate('/onboarding')
+      })
+      .catch((err) => {
+        errorBox.textContent = err.message || 'Registrazione non riuscita'
+        errorBox.hidden = false
+      })
+      .finally(() => {
+        submitBtn.disabled = false
+        submitBtn.classList.remove('btn-loading')
+        submitBtn.querySelector('svg')?.remove()
+        validate()
+      })
   }
 
   section.appendChild(form)

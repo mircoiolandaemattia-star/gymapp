@@ -1,7 +1,7 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
-import { Dumbbell, Mail, Lock } from 'lucide'
-import { login as doLogin, isFirstAccess } from '/src/utils/auth.js'
+import { Dumbbell, Mail, Lock, Loader } from 'lucide'
+import { login as doLogin } from '/src/utils/auth.js'
 import { authInput } from '/src/components/authInput.js'
 
 function authLogo() {
@@ -81,7 +81,6 @@ function render() {
   submitBtn.className = 'btn btn-primary btn-full'
   submitBtn.textContent = 'Accedi'
   form.appendChild(submitBtn)
-
   const link = document.createElement('p')
   link.className = 'auth-link'
   link.innerHTML = 'Non hai un account? <a href="#" id="register-link">Registrati</a>'
@@ -93,15 +92,31 @@ function render() {
   })
 
   function submit() {
-    const ok = doLogin(email.getValue(), password.getValue())
-    if (ok) {
-      navigate(isFirstAccess() ? '/onboarding' : '/')
-      return
-    }
     email.setError()
     password.setError()
-    errorBox.textContent = 'Email o password errati'
-    errorBox.hidden = false
+    errorBox.textContent = ''
+    errorBox.hidden = true
+
+    const btn = form.querySelector('button[type="submit"]')
+    btn.disabled = true
+    btn.classList.add('btn-loading')
+    btn.appendChild(createIcon(Loader, 16, 2))
+
+    doLogin(email.getValue(), password.getValue())
+      .then(() => {
+        navigate('/')
+      })
+      .catch((err) => {
+        email.setError()
+        password.setError()
+        errorBox.textContent = err.message || 'Email o password errati'
+        errorBox.hidden = false
+      })
+      .finally(() => {
+        btn.disabled = false
+        btn.classList.remove('btn-loading')
+        btn.querySelector('svg')?.remove()
+      })
   }
 
   section.appendChild(form)

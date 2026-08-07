@@ -3,8 +3,19 @@ import { LogOut } from 'lucide'
 import { navigate } from '/src/utils/router.js'
 import { calculateCalories } from '/src/utils/calorieCalculator.js'
 import { storage } from '/src/utils/storage.js'
-import { logout as doLogout, getUser } from '/src/utils/auth.js'
-import { profileData } from '/src/mock/profileData.js'
+import {
+  logout as doLogout,
+  getUser,
+  refreshUser,
+  setUser,
+  apiToGoal,
+  apiToActivity,
+  apiToSex,
+  goalToApi,
+  activityToApi,
+  sexToApi,
+} from '/src/utils/auth.js'
+import { apiFetch } from '/src/utils/api.js'
 import { profileHeader } from '/src/components/profileHeader.js'
 import { personalDataCard } from '/src/components/personalDataCard.js'
 import { goalSelector } from '/src/components/goalSelector.js'
@@ -14,33 +25,52 @@ import { addReminderModal } from '/src/components/addReminderModal.js'
 import { settingsCard } from '/src/components/settingsCard.js'
 import { subscriptionCard } from '/src/components/subscriptionCard.js'
 import { logoutConfirmModal } from '/src/components/logoutConfirmModal.js'
+import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 const KEYS = {
   theme: 'ft_theme',
   notifications: 'ft_notifications',
-  reminders: 'ft_reminders',
   plan: 'ft_plan',
   profile: 'ft_profile',
 }
 
-let user = syncUser()
-let goal = storage.get(KEYS.profile)?.goal || profileData.goal
-let activity = storage.get(KEYS.profile)?.activity || profileData.activity
-let reminders = (storage.get(KEYS.reminders) || profileData.reminders).map((r) => ({ ...r }))
+let section = null
+let user = {}
+let goal = 'mantenere'
+let activity = 'moderato'
+let reminders = []
 let plan = loadPlan()
 let notifications = storage.get(KEYS.notifications) !== false
 let darkMode = storage.get(KEYS.theme) !== 'light'
 let editingData = false
-let currentSection = null
+let loaded = false
+let loading = false
+let loadError = null
+
+function userToProfile(u) {
+  return {
+    name: u.name,
+    email: u.email,
+    eta: u.age,
+    peso: u.weightKg,
+    altezza: u.heightCm,
+    sesso: apiToSex[u.gender] || 'M',
+    dailyCalories: u.dailyCalories,
+  }
+}
 
 function syncUser() {
-  const authUser = getUser()
   const saved = storage.get(KEYS.profile) || {}
+  const u = getUser()
+  const mapped = userToProfile(u)
   return {
-    ...profileData.user,
-    ...saved,
-    name: authUser.name,
-    email: authUser.email,
+    name: mapped.name || saved.name || '',
+    email: mapped.email || saved.email || '',
+    eta: mapped.eta ?? saved.eta ?? 30,
+    peso: mapped.peso ?? saved.peso ?? 70,
+    altezza: mapped.altezza ?? saved.altezza ?? 170,
+    sesso: mapped.sesso || saved.sesso || 'M',
+    dailyCalories: mapped.dailyCalories,
   }
 }
 
@@ -54,8 +84,10 @@ function persistPlan() {
   storage.set(KEYS.plan, plan)
 }
 
-function persistReminders() {
-  storage.set(KEYS.reminders, reminders)
+function syncGoalActivity() {
+  const u = getUser()
+  goal = apiToGoal[u.goal] || storage.get(KEYS.profile)?.goal || 'mantenere'
+  activity = apiToActivity[u.activityLevel] || storage.get(KEYS.profile)?.activity || 'moderato'
 }
 
 function computeCalories() {
@@ -103,21 +135,58 @@ function applyTheme() {
 applyTheme()
 
 function render() {
-  const section = buildSection()
-  if (currentSection && currentSection.isConnected) {
-    currentSection.replaceWith(section)
+  if (!section) {
+    section = document.createElement('section')
+    section.className = 'page profilo-page'
   }
-  currentSection = section
+  refresh()
   return section
 }
 
-function buildSection() {
-  const authUser = getUser()
-  if (!user || authUser.email !== user.email) {
-    user = syncUser()
+function refresh() {
+  if (!section) return
+  if (!loaded && !loading) {
+    load()
+  } else {
+    paint()
   }
-  const section = document.createElement('section')
-  section.className = 'page profilo-page'
+}
+
+async function load() {
+  if (loading) return
+  const sec = section
+  if (!sec) return
+  loading = true
+  loadError = null
+  paint()
+  try {
+    const rData = await apiFetch('/reminders')
+    reminders = (rData.reminders || []).map(mapApiReminder)
+    loaded = true
+  } catch (err) {
+    loadError = err.message
+  }
+  loading = false
+  if (section === sec) paint()
+}
+
+function mapApiReminder(r) {
+  const iso = new Date(r.time)
+  const time = String(r.time).slice(11, 16)
+  return {
+    id: r.id,
+    time: time || `${String(iso.getHours()).padStart(2, '0')}:${String(iso.getMinutes()).padStart(2, '0')}`,
+    label: r.message || 'Promemoria',
+    enabled: r.isActive,
+  }
+}
+
+function paint() {
+  if (!section) return
+  section.innerHTML = ''
+
+  user = syncUser()
+  syncGoalActivity()
 
   const header = document.createElement('div')
   header.className = 'page-header'
@@ -131,6 +200,20 @@ function buildSection() {
   header.appendChild(hSub)
   section.appendChild(header)
 
+  if (!loaded) {
+    section.appendChild(loadingEl('Caricamento profilo...'))
+    return
+  }
+
+  if (loadError) {
+    const errCard = errorEl(loadError)
+    errCard.retry.addEventListener('click', () => {
+      loaded = false
+      refresh()
+    })
+    section.appendChild(errCard.el)
+  }
+
   section.appendChild(profileHeader({ name: user.name, email: user.email, plan }))
 
   section.appendChild(personalDataCard({
@@ -138,54 +221,99 @@ function buildSection() {
     editing: editingData,
     onEdit: () => {
       editingData = true
-      render()
+      paint()
     },
-    onSave: (data) => {
-      user = { ...user, ...data }
-      editingData = false
-      persistNutrition()
-      render()
+    onSave: async (data) => {
+      try {
+        const res = await apiFetch('/user/me', {
+          method: 'PUT',
+          body: JSON.stringify({
+            age: Number(data.eta),
+            weightKg: Number(data.peso),
+            heightCm: Number(data.altezza),
+            gender: sexToApi[data.sesso] || 'male',
+          }),
+        })
+        setUser(res.user)
+        await refreshUser()
+        user = { ...user, ...data, dailyCalories: res.user.dailyCalories }
+        editingData = false
+        persistNutrition()
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nel salvataggio dei dati')
+      }
     },
     onCancel: () => {
       editingData = false
-      render()
+      paint()
     },
   }))
 
   section.appendChild(goalSelector({
     active: goal,
-    calories: computeCalories(),
-    onChange: (v) => {
+    calories: user.dailyCalories || computeCalories(),
+    onChange: async (v) => {
       goal = v
+      try {
+        const res = await apiFetch('/user/me', {
+          method: 'PUT',
+          body: JSON.stringify({ goal: goalToApi[v] || 'maintain' }),
+        })
+        setUser(res.user)
+        await refreshUser()
+      } catch (err) {
+        alert(err.message || 'Errore nel salvataggio dell\'obiettivo')
+      }
       persistNutrition()
-      render()
+      paint()
     },
   }))
 
   section.appendChild(activityLevelSelector({
     active: activity,
-    onChange: (v) => {
+    onChange: async (v) => {
       activity = v
+      try {
+        const res = await apiFetch('/user/me', {
+          method: 'PUT',
+          body: JSON.stringify({ activityLevel: activityToApi[v] || 'moderate' }),
+        })
+        setUser(res.user)
+        await refreshUser()
+      } catch (err) {
+        alert(err.message || 'Errore nel salvataggio del livello di attività')
+      }
       persistNutrition()
-      render()
+      paint()
     },
   }))
 
   section.appendChild(reminderCard({
     reminders,
     onAdd: () => openAddReminder(),
-    onToggle: (id) => {
+    onToggle: async (id) => {
       const r = reminders.find((x) => x.id === id)
-      if (r) {
+      if (!r) return
+      try {
+        await apiFetch(`/reminders/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: !r.enabled }),
+        })
         r.enabled = !r.enabled
-        persistReminders()
-        render()
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nell\'aggiornamento del promemoria')
       }
     },
-    onRemove: (id) => {
-      reminders = reminders.filter((x) => x.id !== id)
-      persistReminders()
-      render()
+    onRemove: async (id) => {
+      try {
+        await apiFetch(`/reminders/${id}`, { method: 'DELETE' })
+        reminders = reminders.filter((x) => x.id !== id)
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nell\'eliminazione del promemoria')
+      }
     },
   }))
 
@@ -196,12 +324,12 @@ function buildSection() {
       darkMode = !darkMode
       storage.set(KEYS.theme, darkMode ? 'dark' : 'light')
       applyTheme()
-      render()
+      paint()
     },
     onToggleNotifications: () => {
       notifications = !notifications
       storage.set(KEYS.notifications, notifications)
-      render()
+      paint()
     },
     onLanguage: () => alert('Preferenza lingua (demo)'),
   }))
@@ -211,17 +339,17 @@ function buildSection() {
     onTrial: () => {
       plan = { tier: 'trial', trialEnd: new Date(Date.now() + 30 * 86400000).toISOString() }
       persistPlan()
-      render()
+      paint()
     },
     onUpgrade: () => {
       plan = { tier: 'premium', renewDate: new Date(Date.now() + 365 * 86400000).toISOString() }
       persistPlan()
-      render()
+      paint()
     },
     onCancel: () => {
       plan = { tier: 'free' }
       persistPlan()
-      render()
+      paint()
     },
   }))
 
@@ -240,16 +368,27 @@ function buildSection() {
     })
   })
   section.appendChild(logoutBtn)
-
-  return section
 }
 
 function openAddReminder() {
   addReminderModal({
-    onSave: (r) => {
-      reminders = [...reminders, r]
-      persistReminders()
-      render()
+    onSave: async (r) => {
+      try {
+        const res = await apiFetch('/reminders', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'custom',
+            time: r.time,
+            message: r.label,
+            daysOfWeek: [],
+            isActive: true,
+          }),
+        })
+        reminders = [...reminders, mapApiReminder(res.reminder)]
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nella creazione del promemoria')
+      }
     },
   })
 }

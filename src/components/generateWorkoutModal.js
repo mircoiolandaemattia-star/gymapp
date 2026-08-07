@@ -1,7 +1,12 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Wand2, Loader, CheckCircle, ChevronLeft, ChevronRight, Save } from 'lucide'
+import { saveWorkoutPlan } from '/src/utils/workoutApi.js'
 
-function generateWorkoutModal(onClose) {
+const DAY_NUM = {
+  Lunedì: 1, Martedì: 2, Mercoledì: 3, Giovedì: 4, Venerdì: 5, Sabato: 6, Domenica: 7,
+}
+
+function generateWorkoutModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal() })
@@ -28,6 +33,7 @@ function generateWorkoutModal(onClose) {
   let step = 1
   const totalSteps = 4
   const answers = {}
+  let generatedDays = []
 
   const stepsData = [
     {
@@ -170,6 +176,17 @@ function generateWorkoutModal(onClose) {
         { day: 'Mercoledì', ex: 4 },
         { day: 'Venerdì', ex: 4 },
       ]
+      generatedDays = mockDays.map((d) => ({
+        dayOfWeek: DAY_NUM[d.day] || 1,
+        name: d.day,
+        exercises: Array.from({ length: d.ex }, (_, i) => ({
+          name: `Esercizio ${i + 1}`,
+          sets: 3,
+          reps: 10,
+          weightKg: 20,
+          order: i + 1,
+        })),
+      }))
       mockDays.forEach((d) => {
         const rRow = document.createElement('div')
         rRow.className = 'gen-result-day'
@@ -191,7 +208,25 @@ function generateWorkoutModal(onClose) {
   const sLabel = document.createElement('span')
   sLabel.textContent = 'Salva scheda'
   saveBtn.appendChild(sLabel)
-  saveBtn.addEventListener('click', closeModal)
+  saveBtn.addEventListener('click', async () => {
+    saveBtn.disabled = true
+    saveBtn.classList.add('btn-loading')
+    saveBtn.appendChild(createIcon(Loader, 16, 2))
+    try {
+      await saveWorkoutPlan({
+        name: 'Scheda generata con AI',
+        source: 'ai',
+        days: generatedDays,
+      })
+      closeModal()
+      if (onSaved) onSaved()
+    } catch (err) {
+      alert(err.message || 'Errore nel salvataggio della scheda')
+      saveBtn.disabled = false
+      saveBtn.classList.remove('btn-loading')
+      saveBtn.querySelector('svg')?.remove()
+    }
+  })
   footer.appendChild(saveBtn)
   modal.appendChild(footer)
 
@@ -200,7 +235,6 @@ function generateWorkoutModal(onClose) {
 
   function closeModal() {
     document.body.removeChild(overlay)
-    if (onClose) onClose()
   }
 }
 

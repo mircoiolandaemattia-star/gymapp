@@ -1,16 +1,29 @@
 import { createIcon } from '/src/utils/icons.js'
 import { Plus, Dumbbell } from 'lucide'
-import { workoutSchedules, workoutHistory } from '/src/mock/workoutData.js'
+import { navigate } from '/src/utils/router.js'
+import { fetchWorkoutPlans, fetchWorkoutSessions, toDayCard, toHistoryItem } from '/src/utils/workoutApi.js'
 import { workoutDayCard } from '/src/components/workoutDayCard.js'
 import { workoutHistoryList } from '/src/components/workoutHistoryList.js'
 import { createWorkoutModal } from '/src/components/createWorkoutModal.js'
 import { uploadWorkoutModal } from '/src/components/uploadWorkoutModal.js'
 import { generateWorkoutModal } from '/src/components/generateWorkoutModal.js'
+import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 function render() {
   const section = document.createElement('section')
   section.className = 'page scheda-page'
 
+  section.appendChild(buildHeader())
+
+  const loader = loadingEl('Caricamento schede...')
+  section.appendChild(loader)
+
+  load(section, loader)
+
+  return section
+}
+
+function buildHeader() {
   const header = document.createElement('div')
   header.className = 'scheda-header'
 
@@ -32,7 +45,23 @@ function render() {
   addBtn.addEventListener('click', showCreateOptions)
   header.appendChild(addBtn)
 
-  section.appendChild(header)
+  return header
+}
+
+async function load(section, loader) {
+  try {
+    const [plansData, sessionsData] = await Promise.all([fetchWorkoutPlans(), fetchWorkoutSessions()])
+    renderContent(section, plansData, sessionsData)
+  } catch (err) {
+    section.removeChild(loader)
+    const errCard = errorEl(err.message)
+    errCard.retry.addEventListener('click', () => { window.location.reload() })
+    section.appendChild(errCard.el)
+  }
+}
+
+function renderContent(section, plans, sessions) {
+  section.querySelector('.page-loading')?.remove()
 
   const schedulesTitle = document.createElement('h2')
   schedulesTitle.className = 'section-title'
@@ -41,16 +70,27 @@ function render() {
 
   const list = document.createElement('div')
   list.className = 'workout-schedule-list'
-  workoutSchedules.forEach((day) => {
-    list.appendChild(workoutDayCard(day))
-  })
+
+  const days = plans.flatMap((plan) => plan.workoutDays.map((day) => toDayCard(day, plan.name)))
+
+  if (!days.length) {
+    const empty = document.createElement('div')
+    empty.className = 'card scheda-empty'
+    empty.textContent = 'Nessuna scheda ancora. Crea la tua prima scheda!'
+    list.appendChild(empty)
+  } else {
+    days.forEach((day) => {
+      list.appendChild(workoutDayCard(day))
+    })
+  }
   section.appendChild(list)
 
-  const historySection = workoutHistoryList(workoutHistory)
-  historySection.className = 'history-section'
-  section.appendChild(historySection)
-
-  return section
+  const history = sessions.map(toHistoryItem)
+  if (history.length) {
+    const historySection = workoutHistoryList(history)
+    historySection.className = 'history-section'
+    section.appendChild(historySection)
+  }
 }
 
 function showCreateOptions() {
@@ -71,9 +111,9 @@ function showCreateOptions() {
   sheet.appendChild(sTitle)
 
   const options = [
-    { icon: Plus, label: 'Crea manualmente', desc: 'Crea la tua scheda da zero', action: () => { close(); createWorkoutModal() } },
-    { icon: Dumbbell, label: 'Carica scheda esistente', desc: 'Importa da file immagine o PDF', action: () => { close(); uploadWorkoutModal() } },
-    { icon: Plus, label: 'Genera con AI', desc: 'Lascia che l\'AI crei la scheda per te', action: () => { close(); generateWorkoutModal() } },
+    { icon: Plus, label: 'Crea manualmente', desc: 'Crea la tua scheda da zero', action: () => { close(); createWorkoutModal({ onSaved: reload }) } },
+    { icon: Dumbbell, label: 'Carica scheda esistente', desc: 'Importa da file immagine o PDF', action: () => { close(); uploadWorkoutModal({ onSaved: reload }) } },
+    { icon: Plus, label: 'Genera con AI', desc: 'Lascia che l\'AI crei la scheda per te', action: () => { close(); generateWorkoutModal({ onSaved: reload }) } },
   ]
 
   options.forEach((opt) => {
@@ -104,6 +144,10 @@ function showCreateOptions() {
   function close() {
     document.body.removeChild(overlay)
   }
+}
+
+function reload() {
+  navigate('/scheda')
 }
 
 export { render }

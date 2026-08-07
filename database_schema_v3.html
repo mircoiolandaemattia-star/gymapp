@@ -1,0 +1,183 @@
+
+<div id="erd"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  users {
+    uuid id PK
+    string email
+    string name
+    string password_hash
+    boolean is_premium
+    boolean is_trial
+    timestamp trial_ends_at
+    string goal
+    int age
+    float weight_kg
+    float height_cm
+    string gender
+    string activity_level
+    int daily_calories
+    boolean accepted_disclaimer
+    timestamp created_at
+  }
+
+  workout_plans {
+    uuid id PK
+    uuid user_id FK
+    string name
+    string source
+    timestamp created_at
+  }
+
+  workout_days {
+    uuid id PK
+    uuid plan_id FK
+    int day_of_week
+    string name
+    string muscle_groups
+    boolean is_rest_day
+  }
+
+  exercises {
+    uuid id PK
+    uuid day_id FK
+    string name
+    int sets
+    int reps
+    float weight_kg
+    int order
+  }
+
+  workout_sessions {
+    uuid id PK
+    uuid user_id FK
+    uuid plan_id FK
+    uuid day_id FK
+    timestamp started_at
+    timestamp ended_at
+    int duration_minutes
+    int calories_burned
+  }
+
+  diet_plans {
+    uuid id PK
+    uuid user_id FK
+    string name
+    string source
+    timestamp created_at
+  }
+
+  meals {
+    uuid id PK
+    uuid diet_plan_id FK
+    uuid user_id FK
+    string type
+    date date
+    int total_calories
+  }
+
+  food_items {
+    uuid id PK
+    uuid meal_id FK
+    string name
+    float quantity_g
+    int calories
+    float protein_g
+    float carbs_g
+    float fats_g
+    string source
+    string barcode
+  }
+
+  body_measurements {
+    uuid id PK
+    uuid user_id FK
+    float weight_kg
+    float waist_cm
+    float chest_cm
+    float arms_cm
+    float hips_cm
+    date measured_at
+  }
+
+  progress_photos {
+    uuid id PK
+    uuid user_id FK
+    string photo_url
+    date taken_at
+  }
+
+  reminders {
+    uuid id PK
+    uuid user_id FK
+    string type
+    string days_of_week
+    time time
+    string message
+    boolean is_active
+  }
+
+  ai_usage_log {
+    uuid id PK
+    uuid user_id FK
+    string action_type
+    date used_on
+    int count
+  }
+
+  users ||--o{ workout_plans : "ha"
+  users ||--o{ diet_plans : "ha"
+  users ||--o{ body_measurements : "registra"
+  users ||--o{ progress_photos : "carica"
+  users ||--o{ reminders : "imposta"
+  users ||--o{ meals : "registra"
+  users ||--o{ workout_sessions : "completa"
+  users ||--o{ ai_usage_log : "traccia utilizzo"
+  workout_plans ||--o{ workout_days : "contiene"
+  workout_plans ||--o{ workout_sessions : "usata in"
+  workout_days ||--o{ exercises : "contiene"
+  workout_days ||--o{ workout_sessions : "riferita in"
+  diet_plans ||--o{ meals : "contiene"
+  meals ||--o{ food_items : "contiene"
+`);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

@@ -3032,6 +3032,48 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* ── Loading / error states ── */
+
+.btn-loading {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.btn-loading svg {
+  animation: spin 1s linear infinite;
+}
+
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 64px 16px;
+  color: var(--text-secondary);
+}
+
+.page-loading-text {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.page-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 32px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.page-error-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 /* ── Light theme ── */
 
 html.light {
