@@ -11,6 +11,8 @@ import mealRoutes from './routes/mealRoutes.js'
 import bodyMeasurementRoutes from './routes/bodyMeasurementRoutes.js'
 import reminderRoutes from './routes/reminderRoutes.js'
 import aiUsageRoutes from './routes/aiUsageRoutes.js'
+import aiRoutes from './routes/aiRoutes.js'
+import foodRoutes from './routes/foodRoutes.js'
 import errorHandler from './middleware/errorHandler.js'
 
 const app = express()
@@ -30,7 +32,7 @@ app.use(
   })
 )
 
-app.use(express.json())
+app.use(express.json({ limit: '15mb' }))
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 
@@ -43,6 +45,8 @@ app.use('/api/meals', mealRoutes)
 app.use('/api/body-measurements', bodyMeasurementRoutes)
 app.use('/api/reminders', reminderRoutes)
 app.use('/api/ai-usage', aiUsageRoutes)
+app.use('/api/ai', aiRoutes)
+app.use('/api/food', foodRoutes)
 
 app.use(errorHandler)
 

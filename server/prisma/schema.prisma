@@ -112,9 +112,24 @@ model DietPlan {
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   meals Meal[]
+  planMeals DietPlanMeal[]
 
   @@index([userId])
   @@map("diet_plans")
+}
+
+model DietPlanMeal {
+  id         String   @id @default(uuid()) @db.Uuid
+  dietPlanId String   @map("diet_plan_id") @db.Uuid
+  dayIndex   Int      @map("day_index")
+  type       String?
+  calories   Int?
+  itemsJson  String   @map("items_json") @db.Text
+
+  dietPlan DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+
+  @@index([dietPlanId])
+  @@map("diet_plan_meals")
 }
 
 model Meal {

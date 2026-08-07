@@ -1,8 +1,7 @@
 import { createIcon } from '/src/utils/icons.js'
-import { X, Camera, ScanBarcode, Upload, Pencil } from 'lucide'
+import { X, Camera, ScanBarcode, Pencil } from 'lucide'
 import { photoRecognitionFlow } from '/src/components/photoRecognitionFlow.js'
 import { barcodeScannerFlow } from '/src/components/barcodeScannerFlow.js'
-import { uploadDietModal } from '/src/components/uploadDietModal.js'
 import { manualFoodForm } from '/src/components/manualFoodForm.js'
 
 function addFoodModal({ mealName, onFoodAdded }) {
@@ -32,7 +31,6 @@ function addFoodModal({ mealName, onFoodAdded }) {
   const options = [
     { icon: Camera, label: 'Scatta foto', desc: 'Analizza il pasto con l\'AI', flow: photoRecognitionFlow },
     { icon: ScanBarcode, label: 'Scansiona codice a barre', desc: 'Cerca un prodotto dal codice', flow: barcodeScannerFlow },
-    { icon: Upload, label: 'Carica dieta esistente', desc: 'Importa da immagine o PDF', flow: uploadDietModal },
     { icon: Pencil, label: 'Inserimento manuale', desc: 'Inserisci i valori a mano', flow: manualFoodForm },
   ]
 

@@ -1,10 +1,8 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Wand2, Loader, CheckCircle, ChevronLeft, ChevronRight, Save } from 'lucide'
 import { saveWorkoutPlan } from '/src/utils/workoutApi.js'
-
-const DAY_NUM = {
-  Lunedì: 1, Martedì: 2, Mercoledì: 3, Giovedì: 4, Venerdì: 5, Sabato: 6, Domenica: 7,
-}
+import { apiFetch } from '/src/utils/api.js'
+import { aiErrorBox } from '/src/components/aiErrorBox.js'
 
 function generateWorkoutModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
@@ -158,42 +156,52 @@ function generateWorkoutModal({ onSaved } = {}) {
     loading.appendChild(lt)
     content.appendChild(loading)
 
-    setTimeout(() => {
-      loading.style.display = 'none'
-      resultArea.style.display = 'block'
-
-      const check = createIcon(CheckCircle, 28, 1.5)
-      check.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
-      resultArea.appendChild(check)
-
-      const rTitle = document.createElement('h3')
-      rTitle.className = 'gen-result-title'
-      rTitle.textContent = 'Scheda generata'
-      resultArea.appendChild(rTitle)
-
-      const mockDays = [
-        { day: 'Lunedì', ex: 5 },
-        { day: 'Mercoledì', ex: 4 },
-        { day: 'Venerdì', ex: 4 },
-      ]
-      generatedDays = mockDays.map((d) => ({
-        dayOfWeek: DAY_NUM[d.day] || 1,
-        name: d.day,
-        exercises: Array.from({ length: d.ex }, (_, i) => ({
-          name: `Esercizio ${i + 1}`,
-          sets: 3,
-          reps: 10,
-          weightKg: 20,
-          order: i + 1,
-        })),
-      }))
-      mockDays.forEach((d) => {
-        const rRow = document.createElement('div')
-        rRow.className = 'gen-result-day'
-        rRow.innerHTML = `<strong>${d.day}</strong> — ${d.ex} esercizi`
-        resultArea.appendChild(rRow)
+    apiFetch('/ai/generate-workout', {
+      method: 'POST',
+      body: JSON.stringify({
+        goal: answers.goal || '',
+        level: answers.level || '',
+        days: answers.days ? answers.days.split(' ')[0] : '3',
+        equipment: answers.equipment || '',
+      }),
+    })
+      .then((data) => {
+        generatedDays = data.days || []
+        loading.style.display = 'none'
+        resultArea.style.display = 'block'
+        renderResult()
       })
-    }, 2500)
+      .catch((err) => {
+        loading.style.display = 'none'
+        resultArea.style.display = 'block'
+        resultArea.appendChild(aiErrorBox({ message: err.message, onClose: closeModal }))
+      })
+  }
+
+  function renderResult() {
+    resultArea.innerHTML = ''
+
+    const check = createIcon(CheckCircle, 28, 1.5)
+    check.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
+    resultArea.appendChild(check)
+
+    const rTitle = document.createElement('h3')
+    rTitle.className = 'gen-result-title'
+    rTitle.textContent = 'Scheda generata'
+    resultArea.appendChild(rTitle)
+
+    if (!generatedDays.length) {
+      resultArea.appendChild(aiErrorBox({ message: 'Nessuna scheda generata, riprova', onClose: closeModal }))
+      return
+    }
+
+    generatedDays.forEach((d) => {
+      const rRow = document.createElement('div')
+      rRow.className = 'gen-result-day'
+      const exCount = (d.exercises || []).length
+      rRow.innerHTML = `<strong>${d.name || 'Giorno'}</strong> — ${exCount} esercizi`
+      resultArea.appendChild(rRow)
+    })
   }
 
   renderStep()

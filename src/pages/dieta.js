@@ -1,11 +1,12 @@
 import { createIcon } from '/src/utils/icons.js'
-import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles } from 'lucide'
+import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles, Upload } from 'lucide'
 import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 import { apiFetch } from '/src/utils/api.js'
 import { macroProgressBar } from '/src/components/macroProgressBar.js'
 import { mealSection } from '/src/components/mealSection.js'
 import { addFoodModal } from '/src/components/addFoodModal.js'
 import { generateDietFlow } from '/src/components/generateDietFlow.js'
+import { uploadDietModal } from '/src/components/uploadDietModal.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
@@ -23,11 +24,16 @@ let loadedDate = null
 let loading = false
 let meals = []
 let loadError = null
+let activePlan = null
 let expandedMeals = new Set(['pranzo', 'cena'])
 
 function todayIso() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function todayDayIndex() {
+  return (new Date().getDay() + 6) % 7
 }
 
 function addDaysIso(offset) {
@@ -89,6 +95,14 @@ async function load() {
     loadedDate = selectedDate
     loadError = err.message
   }
+
+  try {
+    const planData = await apiFetch('/diet-plans/active')
+    activePlan = planData.dietPlan || null
+  } catch {
+    activePlan = null
+  }
+
   loading = false
   if (section === sec) paint()
 }
@@ -145,6 +159,8 @@ function paint() {
   })
   section.appendChild(macroCard)
 
+  section.appendChild(buildPlanCard())
+
   const list = document.createElement('div')
   list.className = 'meal-sections'
   MEAL_DEFS.forEach((def) => {
@@ -183,9 +199,19 @@ function paint() {
   aiLabel.textContent = 'Genera dieta con AI'
   aiBtn.appendChild(aiLabel)
   aiBtn.addEventListener('click', () => {
-    generateDietFlow({ onSaveDiet: applyGeneratedDiet })
+    generateDietFlow({})
   })
   section.appendChild(aiBtn)
+
+  const uploadBtn = document.createElement('button')
+  uploadBtn.className = 'btn btn-outline btn-full'
+  uploadBtn.style.marginTop = 'var(--space-sm)'
+  uploadBtn.appendChild(createIcon(Upload, 16, 2))
+  const uploadLabel = document.createElement('span')
+  uploadLabel.textContent = 'Carica dieta esistente'
+  uploadBtn.appendChild(uploadLabel)
+  uploadBtn.addEventListener('click', openUploadDiet)
+  section.appendChild(uploadBtn)
 }
 
 function buildHeader(parent) {
@@ -247,6 +273,93 @@ function computeTotals(meals) {
   )
 }
 
+function buildPlanCard() {
+  const card = document.createElement('div')
+  card.className = 'card diet-plan-card'
+
+  const head = document.createElement('div')
+  head.className = 'diet-plan-card-head'
+  const title = document.createElement('h3')
+  title.className = 'diet-plan-card-title'
+  title.textContent = 'Piano di oggi'
+  head.appendChild(title)
+  card.appendChild(head)
+
+  if (!activePlan) {
+    const sub = document.createElement('p')
+    sub.className = 'diet-plan-card-empty'
+    sub.textContent = 'Nessun piano salvato: genera una dieta per ricevere i suggerimenti del giorno.'
+    card.appendChild(sub)
+    const genBtn = document.createElement('button')
+    genBtn.className = 'btn btn-outline btn-full'
+    genBtn.appendChild(createIcon(Sparkles, 16, 2))
+    const genLabel = document.createElement('span')
+    genLabel.textContent = 'Genera dieta'
+    genBtn.appendChild(genLabel)
+    genBtn.addEventListener('click', () => generateDietFlow({}))
+    card.appendChild(genBtn)
+    return card
+  }
+
+  const dayIdx = todayDayIndex()
+  const todayMeals = (activePlan.planMeals || []).filter((m) => m.dayIndex === dayIdx)
+  const planned = todayMeals.reduce((acc, m) => acc + (m.calories || 0), 0)
+  const logged = computeTotals(meals).cal
+
+  const plannedLabel = document.createElement('p')
+  plannedLabel.className = 'diet-plan-card-planned'
+  plannedLabel.textContent = planned
+    ? `${planned} kcal pianificate · ${logged} kcal registrate`
+    : 'Nessun pasto pianificato per oggi'
+  card.appendChild(plannedLabel)
+
+  if (planned > 0) {
+    const pct = Math.min(100, Math.round((logged / planned) * 100))
+    const barRow = document.createElement('div')
+    barRow.className = 'diet-plan-bar-row'
+    const bar = document.createElement('div')
+    bar.className = 'diet-plan-bar'
+    const fill = document.createElement('div')
+    fill.className = 'diet-plan-bar-fill'
+    fill.style.width = `${Math.min(pct, 100)}%`
+    bar.appendChild(fill)
+    barRow.appendChild(bar)
+    const pctLabel = document.createElement('span')
+    pctLabel.className = 'diet-plan-bar-pct'
+    pctLabel.textContent = `${pct}%`
+    barRow.appendChild(pctLabel)
+    card.appendChild(barRow)
+  }
+
+  if (!todayMeals.length) return card
+
+  const mealWrap = document.createElement('div')
+  mealWrap.className = 'diet-plan-meal-wrap'
+  todayMeals.forEach((m) => {
+    const row = document.createElement('div')
+    row.className = 'diet-plan-meal'
+    const type = document.createElement('span')
+    type.className = 'diet-plan-meal-type'
+    type.textContent = m.type || 'Pasto'
+    row.appendChild(type)
+    const kcal = document.createElement('span')
+    kcal.className = 'diet-plan-meal-kcal'
+    kcal.textContent = `${m.calories || 0} kcal`
+    row.appendChild(kcal)
+    const items = (m.items || []).map((it) => `${it.name} (${it.quantityG}g)`).join(', ')
+    if (items) {
+      const itList = document.createElement('span')
+      itList.className = 'diet-plan-meal-items'
+      itList.textContent = items
+      row.appendChild(itList)
+    }
+    mealWrap.appendChild(row)
+  })
+  card.appendChild(mealWrap)
+
+  return card
+}
+
 function reload() {
   loadedDate = null
   refresh()
@@ -271,10 +384,13 @@ function openAddFood(type, typeName) {
                 proteinG: food.protein || 0,
                 carbsG: food.carbs || 0,
                 fatsG: food.fat || 0,
+                source: food.source || null,
+                barcode: food.barcode || null,
               },
             ],
           }),
         })
+        expandedMeals.add(type)
         await reload()
       } catch (err) {
         alert(err.message || 'Errore nel salvataggio del pasto')
@@ -283,39 +399,8 @@ function openAddFood(type, typeName) {
   })
 }
 
-async function applyGeneratedDiet() {
-  const generated = [
-    { type: 'colazione', name: 'Avena con frutta', qty: 80, cal: 320, protein: 15, carbs: 55, fat: 5 },
-    { type: 'pranzo', name: 'Pollo e riso', qty: 300, cal: 520, protein: 40, carbs: 65, fat: 8 },
-    { type: 'cena', name: 'Salmone e verdure', qty: 320, cal: 480, protein: 38, carbs: 20, fat: 22 },
-  ]
-
-  try {
-    for (const meal of generated) {
-      await apiFetch('/meals', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: meal.type,
-          date: selectedDate,
-          totalCalories: meal.cal,
-          foodItems: [
-            {
-              name: meal.name,
-              quantityG: meal.qty,
-              calories: meal.cal,
-              proteinG: meal.protein,
-              carbsG: meal.carbs,
-              fatsG: meal.fat,
-            },
-          ],
-        }),
-      })
-    }
-    expandedMeals = new Set(['pranzo'])
-    await reload()
-  } catch (err) {
-    alert(err.message || 'Errore nel salvataggio della dieta')
-  }
+function openUploadDiet() {
+  uploadDietModal()
 }
 
 export { render }

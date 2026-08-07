@@ -1,5 +1,6 @@
 import { createIcon } from '/src/utils/icons.js'
-import { X, Save } from 'lucide'
+import { X, Save, Search } from 'lucide'
+import { apiFetch } from '/src/utils/api.js'
 
 function manualFoodForm({ mealName, onFoodAdded }) {
   const overlay = document.createElement('div')
@@ -33,7 +34,13 @@ function manualFoodForm({ mealName, onFoodAdded }) {
   nameInput.id = 'mf-name'
   nameInput.className = 'input'
   nameInput.placeholder = 'es. Petto di pollo'
+  nameInput.setAttribute('autocomplete', 'off')
   nameGroup.appendChild(nameInput)
+
+  const suggestBox = document.createElement('div')
+  suggestBox.className = 'mf-suggest'
+  suggestBox.style.display = 'none'
+  nameGroup.appendChild(suggestBox)
   body.appendChild(nameGroup)
 
   const grid = document.createElement('div')
@@ -46,6 +53,7 @@ function manualFoodForm({ mealName, onFoodAdded }) {
     { key: 'fat', label: 'Grassi (g)', type: 'number', def: 5 },
   ]
   const values = {}
+  const inputs = {}
   fields.forEach((f) => {
     const g = document.createElement('div')
     g.className = 'input-group'
@@ -59,8 +67,80 @@ function manualFoodForm({ mealName, onFoodAdded }) {
     g.appendChild(inp)
     grid.appendChild(g)
     values[f.key] = f.def
+    inputs[f.key] = inp
   })
   body.appendChild(grid)
+
+  let searchTimer = null
+  let pendingSearch = 0
+
+  function hideSuggest() {
+    suggestBox.style.display = 'none'
+  }
+
+  function setFromSuggestion(item) {
+    const qty = Number(values.qty) || 100
+    const f = qty / 100
+    nameInput.value = item.name
+    inputs.qty.value = String(qty)
+    inputs.cal.value = String(Math.round(item.caloriesPer100g * f))
+    inputs.protein.value = String(Math.round(item.proteinPer100g * f * 10) / 10)
+    inputs.carbs.value = String(Math.round(item.carbsPer100g * f * 10) / 10)
+    inputs.fat.value = String(Math.round(item.fatsPer100g * f * 10) / 10)
+    values.qty = qty
+    values.cal = Math.round(item.caloriesPer100g * f)
+    values.protein = Math.round(item.proteinPer100g * f * 10) / 10
+    values.carbs = Math.round(item.carbsPer100g * f * 10) / 10
+    values.fat = Math.round(item.fatsPer100g * f * 10) / 10
+    hideSuggest()
+  }
+
+  nameInput.addEventListener('input', () => {
+    clearTimeout(searchTimer)
+    const q = nameInput.value.trim()
+    if (q.length < 2) {
+      hideSuggest()
+      return
+    }
+    const myId = ++pendingSearch
+    searchTimer = setTimeout(async () => {
+      try {
+        const data = await apiFetch(`/food/search?q=${encodeURIComponent(q)}`)
+        if (myId !== pendingSearch) return
+        const results = (data.results || []).slice(0, 5)
+        suggestBox.innerHTML = ''
+        if (!results.length) {
+          hideSuggest()
+          return
+        }
+        results.forEach((item) => {
+          const row = document.createElement('button')
+          row.type = 'button'
+          row.className = 'mf-suggest-item'
+          const name = document.createElement('span')
+          name.className = 'mf-suggest-name'
+          name.textContent = item.name
+          row.appendChild(name)
+          const meta = document.createElement('span')
+          meta.className = 'mf-suggest-meta'
+          meta.textContent = item.brand ? `${item.brand} · ` : ''
+          meta.textContent += `${item.caloriesPer100g} kcal/100g`
+          row.appendChild(meta)
+          row.addEventListener('click', () => setFromSuggestion(item))
+          suggestBox.appendChild(row)
+        })
+        suggestBox.style.display = 'block'
+      } catch {
+        hideSuggest()
+      }
+    }, 350)
+  })
+
+  nameInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!suggestBox.contains(document.activeElement)) hideSuggest()
+    }, 200)
+  })
 
   modal.appendChild(body)
 

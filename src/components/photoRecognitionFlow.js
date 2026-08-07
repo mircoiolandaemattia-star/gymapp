@@ -1,6 +1,7 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Camera, Loader, Save } from 'lucide'
 import { freeLimitBanner } from '/src/components/freeLimitBanner.js'
+import { aiErrorBox } from '/src/components/aiErrorBox.js'
 import { apiFetch } from '/src/utils/api.js'
 import { getUser } from '/src/utils/auth.js'
 
@@ -44,6 +45,7 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
 
   const limit = photoLimit()
   let used = limit
+  let imageData = null
 
   if (limit === Infinity) {
     used = 0
@@ -117,7 +119,13 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
 
   fileInput.addEventListener('change', () => {
     const file = fileInput.files[0]
-    if (file) showPreview(file)
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      imageData = reader.result
+      showPreview(file)
+    }
+    reader.readAsDataURL(file)
   })
 
   function showPreview(file) {
@@ -174,12 +182,24 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
     loading.appendChild(lt)
     body.appendChild(loading)
 
-    setTimeout(() => {
-      showResult(description)
-    }, 2000)
+    apiFetch('/ai/recognize-meal', {
+      method: 'POST',
+      body: JSON.stringify({ description, image: imageData || null }),
+    })
+      .then((data) => {
+        showResult(data)
+      })
+      .catch((err) => {
+        body.innerHTML = ''
+        if (/limite/i.test(err.message)) {
+          body.appendChild(freeLimitBanner({ used, max: limit, onClose: close }))
+        } else {
+          body.appendChild(aiErrorBox({ message: err.message, onClose: close }))
+        }
+      })
   }
 
-  function showResult(description) {
+  function showResult(data) {
     body.innerHTML = ''
 
     const form = document.createElement('div')
@@ -190,17 +210,41 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
     hint.textContent = 'Modifica i valori rilevati se necessario'
     form.appendChild(hint)
 
+    const ingredients = document.createElement('div')
+    ingredients.className = 'photo-ingredients'
+    const ingTitle = document.createElement('p')
+    ingTitle.className = 'photo-result-hint'
+    ingTitle.textContent = 'Ingredienti rilevati'
+    ingredients.appendChild(ingTitle)
+    ;(data.items || []).forEach((it) => {
+      const row = document.createElement('div')
+      row.className = 'photo-ingredient-row'
+      const nm = document.createElement('span')
+      nm.textContent = it.name
+      row.appendChild(nm)
+      const qty = document.createElement('span')
+      qty.textContent = `${it.quantityG}g`
+      row.appendChild(qty)
+      ingredients.appendChild(row)
+    })
+    form.appendChild(ingredients)
+
     const nameGroup = document.createElement('div')
     nameGroup.className = 'input-group'
     nameGroup.innerHTML = '<label>Nome pasto</label>'
     const nameInput = document.createElement('input')
     nameInput.type = 'text'
     nameInput.className = 'input'
-    nameInput.value = description || 'Pasto analizzato'
+    nameInput.value = data.name || 'Pasto analizzato'
     nameGroup.appendChild(nameInput)
     form.appendChild(nameGroup)
 
-    const state = { cal: 480, protein: 32, carbs: 55, fat: 12 }
+    const state = {
+      cal: Number(data.calories) || 0,
+      protein: Number(data.proteinG) || 0,
+      carbs: Number(data.carbsG) || 0,
+      fat: Number(data.fatsG) || 0,
+    }
 
     const grid = document.createElement('div')
     grid.className = 'macro-input-grid'
@@ -232,15 +276,7 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
     const cLabel = document.createElement('span')
     cLabel.textContent = 'Conferma e aggiungi'
     confirmBtn.appendChild(cLabel)
-    confirmBtn.addEventListener('click', async () => {
-      try {
-        await apiFetch('/ai-usage', {
-          method: 'POST',
-          body: JSON.stringify({ actionType: 'photo_recognition' }),
-        })
-      } catch (err) {
-        // registrazione utilizzo non bloccante
-      }
+    confirmBtn.addEventListener('click', () => {
       onFoodAdded({
         name: nameInput.value.trim() || 'Pasto analizzato',
         qtyLabel: '1 porzione',

@@ -1,6 +1,8 @@
 import { createIcon } from '/src/utils/icons.js'
 import { X, Upload, FileText, CheckCircle, Loader, Save } from 'lucide'
 import { saveWorkoutPlan } from '/src/utils/workoutApi.js'
+import { apiFetch } from '/src/utils/api.js'
+import { aiErrorBox } from '/src/components/aiErrorBox.js'
 
 function uploadWorkoutModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
@@ -83,6 +85,8 @@ function uploadWorkoutModal({ onSaved } = {}) {
     if (file) processFile(file)
   })
 
+  let parsedDays = []
+
   function processFile(file) {
     dzContent.style.display = 'none'
     previewArea.style.display = 'flex'
@@ -105,23 +109,45 @@ function uploadWorkoutModal({ onSaved } = {}) {
     spinnerArea.appendChild(spText)
     previewArea.appendChild(spinnerArea)
 
-    setTimeout(() => {
-      previewArea.style.display = 'none'
-      resultArea.style.display = 'block'
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const data = await apiFetch('/ai/parse-file', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'workout',
+            mimeType: file.type || 'application/pdf',
+            fileBase64: reader.result,
+          }),
+        })
+        parsedDays = data.days || []
+        previewArea.style.display = 'none'
+        resultArea.style.display = 'block'
+        showResult()
+      } catch (err) {
+        previewArea.style.display = 'none'
+        resultArea.style.display = 'block'
+        resultArea.appendChild(aiErrorBox({ message: err.message, onClose: closeModal }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
-      const check = createIcon(CheckCircle, 24, 1.5)
-      check.style.cssText = 'color:var(--accent)'
-      resultArea.innerHTML = ''
-      resultArea.appendChild(check)
-      const successText = document.createElement('p')
-      successText.className = 'upload-success-text'
-      successText.textContent = 'Scheda importata con successo'
-      resultArea.appendChild(successText)
-      const summary = document.createElement('p')
-      summary.className = 'upload-summary'
-      summary.textContent = '3 giorni, 12 esercizi rilevati'
-      resultArea.appendChild(summary)
-    }, 2000)
+  function showResult() {
+    resultArea.innerHTML = ''
+
+    const check = createIcon(CheckCircle, 24, 1.5)
+    check.style.cssText = 'color:var(--accent)'
+    resultArea.appendChild(check)
+    const successText = document.createElement('p')
+    successText.className = 'upload-success-text'
+    successText.textContent = 'Scheda importata con successo'
+    resultArea.appendChild(successText)
+    const exCount = parsedDays.reduce((acc, d) => acc + (d.exercises || []).length, 0)
+    const summary = document.createElement('p')
+    summary.className = 'upload-summary'
+    summary.textContent = `${parsedDays.length} giorni, ${exCount} esercizi rilevati`
+    resultArea.appendChild(summary)
   }
 
   body.appendChild(dropZone)
@@ -146,11 +172,7 @@ function uploadWorkoutModal({ onSaved } = {}) {
       await saveWorkoutPlan({
         name: 'Scheda importata',
         source: 'upload',
-        days: [
-          { dayOfWeek: 1, name: 'Lunedì', exercises: [{ name: 'Panca piana', sets: 4, reps: 10, weightKg: 60, order: 1 }] },
-          { dayOfWeek: 3, name: 'Mercoledì', exercises: [{ name: 'Squat', sets: 4, reps: 10, weightKg: 70, order: 1 }] },
-          { dayOfWeek: 5, name: 'Venerdì', exercises: [{ name: 'Stacco', sets: 4, reps: 8, weightKg: 80, order: 1 }] },
-        ],
+        days: parsedDays,
       })
       closeModal()
       if (onSaved) onSaved()

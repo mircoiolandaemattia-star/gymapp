@@ -1,7 +1,9 @@
 import { createIcon } from '/src/utils/icons.js'
-import { X, Upload, FileText, Loader, CheckCircle, Save } from 'lucide'
+import { X, Upload, FileText, Loader, CheckCircle, ClipboardCheck } from 'lucide'
+import { apiFetch } from '/src/utils/api.js'
+import { aiErrorBox } from '/src/components/aiErrorBox.js'
 
-function uploadDietModal({ mealName, onFoodAdded }) {
+function uploadDietModal() {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
@@ -82,6 +84,8 @@ function uploadDietModal({ mealName, onFoodAdded }) {
     if (file) processFile(file)
   })
 
+  let parsedDiet = null
+
   function processFile(file) {
     dzContent.style.display = 'none'
     previewArea.style.display = 'flex'
@@ -104,23 +108,85 @@ function uploadDietModal({ mealName, onFoodAdded }) {
     spinnerArea.appendChild(spText)
     previewArea.appendChild(spinnerArea)
 
-    setTimeout(() => {
-      previewArea.style.display = 'none'
-      resultArea.style.display = 'block'
+    const reader = new FileReader()
+    reader.onload = async () => {
+      try {
+        const data = await apiFetch('/ai/parse-file', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'diet',
+            mimeType: file.type || 'application/pdf',
+            fileBase64: reader.result,
+          }),
+        })
+        parsedDiet = data || { days: [] }
+        previewArea.style.display = 'none'
+        resultArea.style.display = 'block'
+        showResult()
+      } catch (err) {
+        previewArea.style.display = 'none'
+        resultArea.style.display = 'block'
+        resultArea.appendChild(aiErrorBox({ message: err.message, onClose: close }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
-      const check = createIcon(CheckCircle, 24, 1.5)
-      check.style.cssText = 'color:var(--accent)'
-      resultArea.innerHTML = ''
-      resultArea.appendChild(check)
-      const successText = document.createElement('p')
-      successText.className = 'upload-success-text'
-      successText.textContent = 'Dieta importata'
-      resultArea.appendChild(successText)
-      const summary = document.createElement('p')
-      summary.className = 'upload-summary'
-      summary.textContent = '5 pasti trovati'
-      resultArea.appendChild(summary)
-    }, 2000)
+  function showResult() {
+    resultArea.innerHTML = ''
+
+    const check = createIcon(CheckCircle, 24, 1.5)
+    check.style.cssText = 'color:var(--accent)'
+    resultArea.appendChild(check)
+    const successText = document.createElement('p')
+    successText.className = 'upload-success-text'
+    successText.textContent = 'Dieta importata'
+    resultArea.appendChild(successText)
+
+    const days = parsedDiet.days || []
+    const mealCount = days.reduce((acc, d) => acc + (d.meals || []).length, 0)
+    const summary = document.createElement('p')
+    summary.className = 'upload-summary'
+    summary.textContent = `${days.length} giorni, ${mealCount} pasti rilevati`
+    resultArea.appendChild(summary)
+
+    if (!days.length) return
+
+    const planList = document.createElement('div')
+    planList.className = 'diet-plan-list'
+    days.forEach((day, i) => {
+      const row = document.createElement('div')
+      row.className = 'diet-plan-day'
+      const open = i === 0
+      const head = document.createElement('button')
+      head.className = 'diet-plan-day-head'
+      const dayName = document.createElement('span')
+      dayName.className = 'diet-plan-day-name'
+      dayName.textContent = `Giorno ${day.day || i + 1}`
+      head.appendChild(dayName)
+      const totalKcal = (day.meals || []).reduce((acc, m) => acc + (Number(m.calories) || 0), 0)
+      const dayMeta = document.createElement('span')
+      dayMeta.className = 'diet-plan-day-meta'
+      dayMeta.textContent = `${totalKcal} kcal`
+      head.appendChild(dayMeta)
+      row.appendChild(head)
+
+      const bodyBody = document.createElement('div')
+      bodyBody.className = 'diet-plan-day-body'
+      bodyBody.style.display = open ? 'block' : 'none'
+      head.addEventListener('click', () => {
+        bodyBody.style.display = bodyBody.style.display === 'none' ? 'block' : 'none'
+      })
+      ;(day.meals || []).forEach((m) => {
+        const line = document.createElement('p')
+        const items = (m.items || []).map((it) => `${it.name} (${it.quantityG}g)`).join(', ')
+        line.textContent = `· ${m.name} — ${items || `${m.calories || 0} kcal`}`
+        bodyBody.appendChild(line)
+      })
+      row.appendChild(bodyBody)
+      planList.appendChild(row)
+    })
+    resultArea.appendChild(planList)
   }
 
   body.appendChild(dropZone)
@@ -131,24 +197,46 @@ function uploadDietModal({ mealName, onFoodAdded }) {
 
   const footer = document.createElement('div')
   footer.className = 'modal-footer'
-  const confirmBtn = document.createElement('button')
-  confirmBtn.className = 'btn btn-primary btn-full'
-  confirmBtn.appendChild(createIcon(Save, 16, 2))
-  const confLabel = document.createElement('span')
-  confLabel.textContent = 'Conferma e importa'
-  confirmBtn.appendChild(confLabel)
-  confirmBtn.addEventListener('click', () => {
-    onFoodAdded({
-      name: 'Dieta importata',
-      qtyLabel: '5 pasti',
-      cal: 1480,
-      protein: 110,
-      carbs: 180,
-      fat: 40,
+  const saveBtn = document.createElement('button')
+  saveBtn.className = 'btn btn-primary btn-full'
+  saveBtn.appendChild(createIcon(ClipboardCheck, 16, 2))
+  const saveLabel = document.createElement('span')
+  saveLabel.textContent = 'Salva piano'
+  saveBtn.appendChild(saveLabel)
+  let savedPlan = false
+  saveBtn.addEventListener('click', () => {
+    if (savedPlan || !parsedDiet) return
+    saveBtn.disabled = true
+    saveLabel.textContent = 'Salvataggio...'
+    apiFetch('/diet-plans', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Piano importato',
+        source: 'import',
+        days: (parsedDiet && parsedDiet.days) || [],
+      }),
     })
-    close()
+      .then(() => {
+        savedPlan = true
+        saveLabel.textContent = 'Piano salvato'
+        saveBtn.classList.remove('btn-primary')
+        saveBtn.classList.add('btn-success')
+        saveBtn.replaceChild(createIcon(CheckCircle, 16, 2), saveBtn.firstChild)
+      })
+      .catch((err) => {
+        saveBtn.disabled = false
+        saveLabel.textContent = 'Errore, riprova'
+        alert(err.message || 'Errore nel salvataggio del piano')
+      })
   })
-  footer.appendChild(confirmBtn)
+  footer.appendChild(saveBtn)
+  const footerBtn = document.createElement('button')
+  footerBtn.className = 'btn btn-outline btn-full'
+  const cLabel = document.createElement('span')
+  cLabel.textContent = 'Chiudi'
+  footerBtn.appendChild(cLabel)
+  footerBtn.addEventListener('click', close)
+  footer.appendChild(footerBtn)
   modal.appendChild(footer)
 
   overlay.appendChild(modal)

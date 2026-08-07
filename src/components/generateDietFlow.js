@@ -1,5 +1,8 @@
 import { createIcon } from '/src/utils/icons.js'
-import { X, Sparkles, Loader, CheckCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Save } from 'lucide'
+import { X, Sparkles, Loader, CheckCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ClipboardCheck } from 'lucide'
+import { apiFetch } from '/src/utils/api.js'
+import { aiErrorBox } from '/src/components/aiErrorBox.js'
+import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 
 const ALLERGENS = ['Glutine', 'Lattosio', 'Frutta secca', 'Uova', 'Pesce', 'Crostacei', 'Soia']
 
@@ -10,16 +13,6 @@ const MEAL_COUNTS = [
 ]
 
 const WEEK_DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
-
-const WEEK_PLAN = [
-  { total: 2180, meals: ['Avena con frutta', 'Pollo e riso', 'Salmone e verdure'] },
-  { total: 2050, meals: ['Yogurt e mandorle', 'Bresaola e quinoa', 'Frittata di albumi'] },
-  { total: 2210, meals: ['Pane e frutta', 'Tacchino e patate', 'Tonno e insalata'] },
-  { total: 2090, meals: ['Avena con latte', 'Petto e riso basmati', 'Salmone e verdure'] },
-  { total: 2140, meals: ['Yogurt greco', 'Pollo e quinoa', 'Merluzzo e patate'] },
-  { total: 1980, meals: ['Avena e frutta secca', 'Bresaola e riso', 'Frittata e verdure'] },
-  { total: 2260, meals: ['Latte e cereali', 'Tacchino e riso', 'Salmone e patate'] },
-]
 
 function generateDietFlow({ onSaveDiet }) {
   const overlay = document.createElement('div')
@@ -49,6 +42,7 @@ function generateDietFlow({ onSaveDiet }) {
   const totalSteps = 4
   const answers = {}
   const allergens = new Set()
+  let generatedDiet = null
 
   const content = document.createElement('div')
   content.className = 'gen-content'
@@ -207,60 +201,120 @@ function generateDietFlow({ onSaveDiet }) {
     loading.appendChild(lt)
     content.appendChild(loading)
 
-    setTimeout(() => {
-      loading.style.display = 'none'
-      resultArea.style.display = 'block'
+    const allergenList = [...allergens]
+    if (answers.otherAllergens) allergenList.push(answers.otherAllergens)
 
-      const check = createIcon(CheckCircle, 28, 1.5)
-      check.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
-      resultArea.appendChild(check)
-
-      const rTitle = document.createElement('h3')
-      rTitle.className = 'gen-result-title'
-      rTitle.textContent = 'Piano settimanale generato'
-      resultArea.appendChild(rTitle)
-
-      const planList = document.createElement('div')
-      planList.className = 'diet-plan-list'
-
-      WEEK_PLAN.forEach((day, i) => {
-        const row = document.createElement('div')
-        row.className = 'diet-plan-day'
-        let open = i === 0
-
-        const head = document.createElement('button')
-        head.className = 'diet-plan-day-head'
-        const dayName = document.createElement('span')
-        dayName.className = 'diet-plan-day-name'
-        dayName.textContent = WEEK_DAYS[i]
-        head.appendChild(dayName)
-        const dayMeta = document.createElement('span')
-        dayMeta.className = 'diet-plan-day-meta'
-        dayMeta.textContent = `${day.total} kcal`
-        head.appendChild(dayMeta)
-        head.appendChild(createIcon(open ? ChevronUp : ChevronDown, 14, 2))
-        head.addEventListener('click', () => {
-          open = !open
-          bodyBody.style.display = open ? 'block' : 'none'
-          head.replaceChild(open ? createIcon(ChevronUp, 14, 2) : createIcon(ChevronDown, 14, 2), head.lastChild)
-        })
-        row.appendChild(head)
-
-        const bodyBody = document.createElement('div')
-        bodyBody.className = 'diet-plan-day-body'
-        bodyBody.style.display = open ? 'block' : 'none'
-        day.meals.forEach((m) => {
-          const line = document.createElement('p')
-          line.textContent = `· ${m}`
-          bodyBody.appendChild(line)
-        })
-        row.appendChild(bodyBody)
-
-        planList.appendChild(row)
+    apiFetch('/ai/generate-diet', {
+      method: 'POST',
+      body: JSON.stringify({
+        goal: answers.goal || '',
+        allergens: allergenList,
+        preferences: answers.preference ? [answers.preference] : [],
+        mealsPerDay: answers.meals || '3',
+        dailyCalories: getNutritionTargets().calories || 2000,
+      }),
+    })
+      .then((data) => {
+        generatedDiet = data || { days: [] }
+        loading.style.display = 'none'
+        resultArea.style.display = 'block'
+        renderPlan()
       })
+      .catch((err) => {
+        loading.style.display = 'none'
+        resultArea.style.display = 'block'
+        resultArea.appendChild(aiErrorBox({ message: err.message, onClose: close }))
+      })
+  }
 
-      resultArea.appendChild(planList)
-    }, 2500)
+  function renderPlan() {
+    resultArea.innerHTML = ''
+
+    const check = createIcon(CheckCircle, 28, 1.5)
+    check.style.cssText = 'color:var(--accent);margin-bottom:var(--space-md)'
+    resultArea.appendChild(check)
+
+    const rTitle = document.createElement('h3')
+    rTitle.className = 'gen-result-title'
+    rTitle.textContent = 'Piano settimanale generato'
+    resultArea.appendChild(rTitle)
+
+    const days = generatedDiet.days || []
+    if (!days.length) {
+      resultArea.appendChild(aiErrorBox({ message: 'Nessun piano generato, riprova', onClose: close }))
+      return
+    }
+
+    const planList = document.createElement('div')
+    planList.className = 'diet-plan-list'
+
+    days.forEach((day, i) => {
+      const row = document.createElement('div')
+      row.className = 'diet-plan-day'
+      let open = i === 0
+
+      const head = document.createElement('button')
+      head.className = 'diet-plan-day-head'
+      const dayName = document.createElement('span')
+      dayName.className = 'diet-plan-day-name'
+      dayName.textContent = WEEK_DAYS[(day.day || i + 1) - 1] || `Giorno ${day.day || i + 1}`
+      head.appendChild(dayName)
+      const totalKcal = (day.meals || []).reduce((acc, m) => acc + (Number(m.calories) || 0), 0)
+      const dayMeta = document.createElement('span')
+      dayMeta.className = 'diet-plan-day-meta'
+      dayMeta.textContent = `${totalKcal} kcal`
+      head.appendChild(dayMeta)
+      head.appendChild(createIcon(open ? ChevronUp : ChevronDown, 14, 2))
+      head.addEventListener('click', () => {
+        open = !open
+        bodyBody.style.display = open ? 'block' : 'none'
+        head.replaceChild(open ? createIcon(ChevronUp, 14, 2) : createIcon(ChevronDown, 14, 2), head.lastChild)
+      })
+      row.appendChild(head)
+
+      const bodyBody = document.createElement('div')
+      bodyBody.className = 'diet-plan-day-body'
+      bodyBody.style.display = open ? 'block' : 'none'
+      ;(day.meals || []).forEach((m) => {
+        const line = document.createElement('p')
+        const items = (m.items || []).map((it) => `${it.name} (${it.quantityG}g)`).join(', ')
+        line.textContent = `· ${m.name} — ${items || `${m.calories || 0} kcal`}`
+        bodyBody.appendChild(line)
+      })
+      row.appendChild(bodyBody)
+
+      planList.appendChild(row)
+    })
+
+    resultArea.appendChild(planList)
+  }
+
+  let savedPlan = false
+
+  function savePlan() {
+    if (savedPlan || !generatedDiet) return
+    saveBtn.disabled = true
+    saveLabel.textContent = 'Salvataggio...'
+    apiFetch('/diet-plans', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Piano AI',
+        source: 'ai',
+        days: (generatedDiet && generatedDiet.days) || [],
+      }),
+    })
+      .then(() => {
+        savedPlan = true
+        saveLabel.textContent = 'Piano salvato'
+        saveBtn.classList.remove('btn-primary')
+        saveBtn.classList.add('btn-success')
+        saveBtn.replaceChild(createIcon(CheckCircle, 16, 2), saveBtn.firstChild)
+      })
+      .catch((err) => {
+        saveBtn.disabled = false
+        saveLabel.textContent = 'Errore, riprova'
+        alert(err.message || 'Errore nel salvataggio del piano')
+      })
   }
 
   renderStep()
@@ -271,15 +325,19 @@ function generateDietFlow({ onSaveDiet }) {
   footer.className = 'modal-footer'
   const saveBtn = document.createElement('button')
   saveBtn.className = 'btn btn-primary btn-full'
-  saveBtn.appendChild(createIcon(Save, 16, 2))
-  const sLabel = document.createElement('span')
-  sLabel.textContent = 'Salva dieta'
-  saveBtn.appendChild(sLabel)
-  saveBtn.addEventListener('click', () => {
-    if (onSaveDiet) onSaveDiet({ goal: answers.goal, preference: answers.preference, meals: answers.meals })
-    close()
-  })
+  saveBtn.appendChild(createIcon(ClipboardCheck, 16, 2))
+  const saveLabel = document.createElement('span')
+  saveLabel.textContent = 'Salva piano'
+  saveBtn.appendChild(saveLabel)
+  saveBtn.addEventListener('click', savePlan)
   footer.appendChild(saveBtn)
+  const footerBtn = document.createElement('button')
+  footerBtn.className = 'btn btn-outline btn-full'
+  const cLabel = document.createElement('span')
+  cLabel.textContent = 'Chiudi'
+  footerBtn.appendChild(cLabel)
+  footerBtn.addEventListener('click', close)
+  footer.appendChild(footerBtn)
   modal.appendChild(footer)
 
   overlay.appendChild(modal)
