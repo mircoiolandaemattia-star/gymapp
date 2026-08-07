@@ -1,5 +1,6 @@
 import { createIcon } from '/src/utils/icons.js'
 import { Coffee, Cookie, Beef, Zap, UtensilsCrossed, Plus } from 'lucide'
+import { navigate } from '/src/utils/router.js'
 
 function mealIcon(name) {
   const map = {
@@ -22,7 +23,7 @@ function mealsSummaryCard(meals) {
   link.href = '#'
   link.className = 'section-link'
   link.textContent = 'Vedi tutto'
-  link.addEventListener('click', (e) => { e.preventDefault() })
+  link.addEventListener('click', (e) => { e.preventDefault(); navigate('/dieta') })
   header.appendChild(link)
   card.appendChild(header)
 
@@ -42,7 +43,7 @@ function mealsSummaryCard(meals) {
     const addLabel = document.createElement('span')
     addLabel.textContent = 'Aggiungi pasto'
     addBtn.appendChild(addLabel)
-    addBtn.addEventListener('click', () => {})
+    addBtn.addEventListener('click', () => navigate('/dieta'))
     empty.appendChild(addBtn)
     card.appendChild(empty)
     return card

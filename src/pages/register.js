@@ -1,6 +1,6 @@
 import { navigate } from '/src/utils/router.js'
 import { createIcon } from '/src/utils/icons.js'
-import { Dumbbell, User, Mail, Lock, Loader } from 'lucide'
+import { Dumbbell, User, Mail, Lock, Loader, X } from 'lucide'
 import { register as doRegister } from '/src/utils/auth.js'
 import { authInput } from '/src/components/authInput.js'
 import { passwordStrengthIndicator } from '/src/components/passwordStrengthIndicator.js'
@@ -20,6 +20,64 @@ function authLogo() {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const TERMS_TEXT =
+  'Accettando i termini e le condizioni confermi di aver letto e compreso le informazioni sull’utilizzo di FitTrack. ' +
+  'Le schede di allenamento e i piani alimentari generati hanno scopo puramente informativo e non sostituiscono il parere ' +
+  'di un medico, nutrizionista o personal trainer certificato. Prima di iniziare qualsiasi programma, specialmente in caso ' +
+  'di patologie pregresse, consulta un professionista qualificato. L’uso dell’app è a tuo rischio. I dati inseriti vengono ' +
+  'salvati e trattati per personalizzare la tua esperienza.'
+
+function showTermsModal() {
+  const overlay = document.createElement('div')
+  overlay.className = 'modal-overlay'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
+
+  const modal = document.createElement('div')
+  modal.className = 'modal modal-scroll'
+
+  const header = document.createElement('div')
+  header.className = 'modal-header'
+  const hTitle = document.createElement('h2')
+  hTitle.className = 'modal-title'
+  hTitle.textContent = 'Termini e condizioni'
+  header.appendChild(hTitle)
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'modal-close'
+  closeBtn.appendChild(createIcon(X, 20, 2))
+  closeBtn.addEventListener('click', close)
+  header.appendChild(closeBtn)
+  modal.appendChild(header)
+
+  const body = document.createElement('div')
+  body.className = 'modal-body'
+  const text = document.createElement('p')
+  text.className = 'terms-text'
+  text.textContent = TERMS_TEXT
+  body.appendChild(text)
+  modal.appendChild(body)
+
+  const footer = document.createElement('div')
+  footer.className = 'modal-footer'
+  const okBtn = document.createElement('button')
+  okBtn.className = 'btn btn-primary btn-full'
+  okBtn.textContent = 'Ho capito'
+  okBtn.addEventListener('click', () => {
+    const checkbox = document.getElementById('reg-terms')
+    if (checkbox) checkbox.checked = true
+    checkbox.dispatchEvent(new Event('change'))
+    close()
+  })
+  footer.appendChild(okBtn)
+  modal.appendChild(footer)
+
+  overlay.appendChild(modal)
+  document.body.appendChild(overlay)
+
+  function close() {
+    document.body.removeChild(overlay)
+  }
+}
 
 function render() {
   const section = document.createElement('section')
@@ -100,7 +158,7 @@ function render() {
 
   termsRow.querySelector('#terms-link').addEventListener('click', (e) => {
     e.preventDefault()
-    alert('Termini e condizioni (demo)')
+    showTermsModal()
   })
 
   const submitBtn = document.createElement('button')

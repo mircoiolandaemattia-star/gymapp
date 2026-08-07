@@ -1,7 +1,8 @@
+import { navigate } from '/src/utils/router.js'
+
 function calorieRing(calories) {
   const card = document.createElement('div')
   card.className = 'card'
-
   const header = document.createElement('div')
   header.className = 'section-header'
   const title = document.createElement('h3')
@@ -12,7 +13,7 @@ function calorieRing(calories) {
   link.href = '#'
   link.className = 'section-link'
   link.textContent = 'Vedi tutto'
-  link.addEventListener('click', (e) => { e.preventDefault() })
+  link.addEventListener('click', (e) => { e.preventDefault(); navigate('/dieta') })
   header.appendChild(link)
   card.appendChild(header)
 

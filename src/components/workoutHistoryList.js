@@ -1,5 +1,6 @@
 import { createIcon } from '/src/utils/icons.js'
 import { Dumbbell, Timer, Flame } from 'lucide'
+import { navigate } from '/src/utils/router.js'
 
 function workoutHistoryList(history) {
   const section = document.createElement('div')
@@ -14,7 +15,7 @@ function workoutHistoryList(history) {
   link.href = '#'
   link.className = 'section-link'
   link.textContent = 'Vedi tutto'
-  link.addEventListener('click', (e) => { e.preventDefault() })
+  link.addEventListener('click', (e) => { e.preventDefault(); navigate('/scheda') })
   header.appendChild(link)
   section.appendChild(header)
 
