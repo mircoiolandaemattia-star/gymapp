@@ -2578,6 +2578,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
   padding: var(--space-lg) var(--space-lg) var(--space-md);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -3910,6 +3912,15 @@ html.light .bottom-nav {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--accent);
+}
+
+/* Nel header dei modal la pill va su una riga dedicata sotto il titolo,
+   staccata dalla X di chiusura */
+.modal-header .meal-context {
+  order: 99;
+  flex: 1 0 100%;
+  width: 100%;
+  margin-bottom: 0;
 }
 
 /* ── Manual food: ricerca ── */
