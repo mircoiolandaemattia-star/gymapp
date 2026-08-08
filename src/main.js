@@ -29,12 +29,17 @@ function render() {
   }
 }
 
-window.addEventListener('popstate', render)
-render()
+let installTimer = null
+function scheduleInstallPrompt() {
+  if (isActiveWorkout()) return
+  clearTimeout(installTimer)
+  installTimer = setTimeout(() => maybeShowInstallPrompt(), 3500)
+}
 
-setTimeout(() => {
-  const path = window.location.pathname || '/'
-  if (!isActiveWorkout() && !AUTH_PATHS.includes(path)) {
-    maybeShowInstallPrompt()
-  }
-}, 4000)
+window.addEventListener('popstate', () => {
+  render()
+  scheduleInstallPrompt()
+})
+
+render()
+scheduleInstallPrompt()

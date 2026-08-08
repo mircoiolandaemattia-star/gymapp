@@ -6,6 +6,7 @@ const KEY = 'ft_install'
 const REMIND_DAYS = 14
 let deferredPrompt = null
 let overlay = null
+let sessionShown = false
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault()
@@ -198,6 +199,7 @@ function showInstall(plat) {
 export function maybeShowInstallPrompt({ force = false } = {}) {
   if (typeof window === 'undefined') return
   if (isStandalone()) return
+  if (!force && sessionShown) return
 
   const saved = storage.get(KEY) || {}
   if (saved.installed) return
@@ -206,5 +208,6 @@ export function maybeShowInstallPrompt({ force = false } = {}) {
     if (days < REMIND_DAYS) return
   }
 
+  sessionShown = true
   showInstall(detect())
 }
