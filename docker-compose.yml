@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: fittrack-db
+    container_name: fittrack-db-local
     restart: unless-stopped
     environment:
       POSTGRES_USER: fittrack
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_local_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fittrack -d fittrack"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: fittrack-backend
+    container_name: fittrack-backend-local
     restart: unless-stopped
     depends_on:
       db:
@@ -38,4 +38,4 @@ services:
       - "3000:3000"
 
 volumes:
-  postgres_data:
+  postgres_local_data:

@@ -42,12 +42,12 @@ export async function login(req, res, next) {
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
-      return res.status(401).json({ error: 'Credenziali non valide' })
+      return res.status(401).json({ error: 'Email o password errati' })
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) {
-      return res.status(401).json({ error: 'Credenziali non valide' })
+      return res.status(401).json({ error: 'Email o password errati' })
     }
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
