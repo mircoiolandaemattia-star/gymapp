@@ -52,6 +52,6 @@ app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000
 
-app.listen(PORT, () => {
-  console.log(`Fittrack API in ascolto su http://localhost:${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Fittrack API in ascolto sulla porta ${PORT}`)
 })
