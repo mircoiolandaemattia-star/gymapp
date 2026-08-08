@@ -3,7 +3,7 @@
 ## Sviluppo locale
 
 1. Crea un branch: `git checkout -b nome-feature`
-2. Avvia l'ambiente locale: `npm run docker:local:up`
+2. Avvia l'ambiente locale: `docker compose -f docker-compose.yml up -d`
 3. Sviluppa e testa tutto in locale (database Docker separato da produzione)
 4. Quando sei sicuro che funzioni, fai commit e push sul branch
 5. Fai il merge su `main` SOLO quando la feature è testata e stabile
@@ -20,10 +20,10 @@
 ## Comandi Docker locali
 
 ```bash
-npm run docker:local:up      # avvia db + backend locale
-npm run docker:local:down    # ferma i container
-npm run docker:local:reset   # distrugge e ricrea i container (reset dati locali)
-npm run docker:local:logs    # log del backend locale
+docker compose -f docker-compose.yml up -d    # avvia db + backend locale
+docker compose -f docker-compose.yml down      # ferma i container
+docker compose -f docker-compose.yml down -v && docker compose -f docker-compose.yml up -d   # reset dati locali
+docker compose -f docker-compose.yml logs -f backend   # log del backend locale
 ```
 
 ## Variabili d'ambiente
