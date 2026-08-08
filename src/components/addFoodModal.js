@@ -3,6 +3,7 @@ import { X, Camera, ScanBarcode, Pencil } from 'lucide'
 import { photoRecognitionFlow } from '/src/components/photoRecognitionFlow.js'
 import { barcodeScannerFlow } from '/src/components/barcodeScannerFlow.js'
 import { manualFoodForm } from '/src/components/manualFoodForm.js'
+import { mealContext } from '/src/components/mealContext.js'
 
 function addFoodModal({ mealName, onFoodAdded }) {
   const overlay = document.createElement('div')
@@ -24,6 +25,7 @@ function addFoodModal({ mealName, onFoodAdded }) {
   closeBtn.addEventListener('click', close)
   header.appendChild(closeBtn)
   modal.appendChild(header)
+  header.appendChild(mealContext(mealName))
 
   const body = document.createElement('div')
   body.className = 'modal-body'

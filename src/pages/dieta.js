@@ -1,5 +1,5 @@
 import { createIcon } from '/src/utils/icons.js'
-import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles, Upload } from 'lucide'
+import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles, Upload, X, Save } from 'lucide'
 import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 import { apiFetch } from '/src/utils/api.js'
 import { macroProgressBar } from '/src/components/macroProgressBar.js'
@@ -8,6 +8,7 @@ import { addFoodModal } from '/src/components/addFoodModal.js'
 import { generateDietFlow } from '/src/components/generateDietFlow.js'
 import { uploadDietModal } from '/src/components/uploadDietModal.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
+import { quickConfirm } from '/src/components/quickConfirm.js'
 
 const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
@@ -167,6 +168,8 @@ function paint() {
     const typeMeals = meals.filter((m) => (m.type || 'snack') === def.id)
     const foods = typeMeals.flatMap((m) =>
       (m.foodItems || []).map((f) => ({
+        id: f.id,
+        mealId: m.id,
         name: f.name,
         qty: f.quantityG ?? 0,
         cal: f.calories ?? 0,
@@ -186,6 +189,8 @@ function paint() {
             paint()
           },
           onAdd: () => openAddFood(def.id, def.name),
+          onEdit: (food) => openEditFood(food),
+          onDelete: (food) => confirmDeleteFood(food),
         }
       )
     )
@@ -370,7 +375,7 @@ function openAddFood(type, typeName) {
     mealName: typeName,
     onFoodAdded: async (food) => {
       try {
-        await apiFetch('/meals', {
+        const res = await apiFetch('/meals', {
           method: 'POST',
           body: JSON.stringify({
             type,
@@ -391,9 +396,126 @@ function openAddFood(type, typeName) {
           }),
         })
         expandedMeals.add(type)
-        await reload()
+        upsertMeal(res.meal)
+        paint()
       } catch (err) {
         alert(err.message || 'Errore nel salvataggio del pasto')
+      }
+    },
+  })
+}
+
+function upsertMeal(meal) {
+  if (!meal) return
+  const idx = meals.findIndex((m) => m.id === meal.id)
+  if (idx === -1) meals.push(meal)
+  else meals[idx] = meal
+}
+
+function openEditFood(food) {
+  const overlay = document.createElement('div')
+  overlay.className = 'modal-overlay edit-overlay'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
+
+  const modal = document.createElement('div')
+  modal.className = 'modal modal-sm'
+
+  const header = document.createElement('div')
+  header.className = 'modal-header'
+  const hTitle = document.createElement('h2')
+  hTitle.className = 'modal-title'
+  hTitle.textContent = `Modifica quantità`
+  header.appendChild(hTitle)
+  const closeBtn = document.createElement('button')
+  closeBtn.className = 'modal-close'
+  closeBtn.appendChild(createIcon(X, 20, 2))
+  closeBtn.addEventListener('click', close)
+  header.appendChild(closeBtn)
+  modal.appendChild(header)
+
+  const body = document.createElement('div')
+  body.className = 'modal-body'
+
+  const nameP = document.createElement('p')
+  nameP.className = 'edit-food-name'
+  nameP.textContent = food.name
+  body.appendChild(nameP)
+
+  const qtyGroup = document.createElement('div')
+  qtyGroup.className = 'input-group'
+  qtyGroup.innerHTML = '<label for="edit-qty">Quantità (g)</label>'
+  const qtyInput = document.createElement('input')
+  qtyInput.type = 'number'
+  qtyInput.id = 'edit-qty'
+  qtyInput.className = 'input'
+  qtyInput.value = String(food.qty)
+  qtyGroup.appendChild(qtyInput)
+  body.appendChild(qtyGroup)
+
+  const computedEl = document.createElement('p')
+  computedEl.className = 'edit-computed'
+  body.appendChild(computedEl)
+
+  function recompute() {
+    const newQty = Number(qtyInput.value) || 0
+    const f = food.qty ? newQty / food.qty : newQty / 100
+    computedEl.textContent = `${Math.round((food.cal || 0) * f)} kcal · P ${((food.protein || 0) * f).toFixed(1)}g · C ${((food.carbs || 0) * f).toFixed(1)}g · G ${((food.fat || 0) * f).toFixed(1)}g`
+  }
+  recompute()
+  qtyInput.addEventListener('input', recompute)
+
+  const saveBtn = document.createElement('button')
+  saveBtn.className = 'btn btn-primary btn-full'
+  saveBtn.appendChild(createIcon(Save, 16, 2))
+  const sLabel = document.createElement('span')
+  sLabel.textContent = 'Aggiorna'
+  saveBtn.appendChild(sLabel)
+  saveBtn.addEventListener('click', async () => {
+    const newQty = Number(qtyInput.value) || 0
+    if (newQty === food.qty) return close()
+    const f = food.qty ? newQty / food.qty : 1
+    try {
+      const res = await apiFetch(`/meals/${food.mealId}/foods/${food.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          quantityG: newQty,
+          calories: Math.round((food.cal || 0) * f),
+          proteinG: Math.round((food.protein || 0) * f * 10) / 10,
+          carbsG: Math.round((food.carbs || 0) * f * 10) / 10,
+          fatsG: Math.round((food.fat || 0) * f * 10) / 10,
+        }),
+      })
+      upsertMeal(res.meal)
+      paint()
+      close()
+    } catch (err) {
+      alert(err.message || 'Errore nell\'aggiornamento')
+    }
+  })
+  body.appendChild(saveBtn)
+  modal.appendChild(body)
+  overlay.appendChild(modal)
+  document.body.appendChild(overlay)
+
+  function close() {
+    if (overlay.parentNode) document.body.removeChild(overlay)
+  }
+}
+
+function confirmDeleteFood(food) {
+  quickConfirm({
+    message: `Rimuovere ${food.name} dal pasto?`,
+    confirmText: 'Rimuovi',
+    onConfirm: async () => {
+      try {
+        const res = await apiFetch(`/meals/${food.mealId}/foods/${food.id}`, {
+          method: 'DELETE',
+        })
+        if (!res.meal) meals = meals.filter((m) => m.id !== food.mealId)
+        else upsertMeal(res.meal)
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nell\'eliminazione')
       }
     },
   })

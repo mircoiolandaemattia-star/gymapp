@@ -3,6 +3,8 @@ import { X, ScanLine, Save, AlertTriangle, Keyboard } from 'lucide'
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { apiFetch } from '/src/utils/api.js'
 import { manualFoodForm } from '/src/components/manualFoodForm.js'
+import { mealContext } from '/src/components/mealContext.js'
+import { addRecentFood } from '/src/utils/recentFoods.js'
 
 function barcodeScannerFlow({ mealName, onFoodAdded }) {
   const overlay = document.createElement('div')
@@ -18,6 +20,7 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
   hTitle.className = 'modal-title'
   hTitle.textContent = 'Scansiona codice a barre'
   header.appendChild(hTitle)
+  header.appendChild(mealContext(mealName))
   const closeBtn = document.createElement('button')
   closeBtn.className = 'modal-close'
   closeBtn.appendChild(createIcon(X, 20, 2))
@@ -229,6 +232,26 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
     qtyGroup.appendChild(qtyInput)
     box.appendChild(qtyGroup)
 
+    const quick = document.createElement('div')
+    quick.className = 'mf-quick'
+    const quickPresets = [
+      { label: '1 porzione (30g)', v: 30 },
+      { label: '100g', v: 100 },
+      { label: '200g', v: 200 },
+    ]
+    quickPresets.forEach((p) => {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = 'chip'
+      chip.textContent = p.label
+      chip.addEventListener('click', () => {
+        qtyInput.value = String(p.v)
+        updateComputed()
+      })
+      quick.appendChild(chip)
+    })
+    box.appendChild(quick)
+
     const computedRow = document.createElement('div')
     computedRow.className = 'barcode-computed'
     const label = document.createElement('span')
@@ -270,6 +293,13 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
     confirmBtn.appendChild(cLabel)
     confirmBtn.addEventListener('click', () => {
       const f = qty / 100
+      addRecentFood({
+        name: data.name,
+        caloriesPer100g: data.caloriesPer100g,
+        proteinPer100g: data.proteinPer100g,
+        carbsPer100g: data.carbsPer100g,
+        fatsPer100g: data.fatsPer100g,
+      })
       onFoodAdded({
         name: data.name,
         qty,

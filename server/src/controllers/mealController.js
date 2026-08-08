@@ -6,6 +6,77 @@ function parseDate(value) {
   return date
 }
 
+export async function updateFoodItem(req, res, next) {
+  try {
+    const { mealId, foodId } = req.params
+    const { name, quantityG, calories, proteinG, carbsG, fatsG } = req.body
+
+    const meal = await prisma.meal.findFirst({ where: { id: mealId, userId: req.userId } })
+    if (!meal) return res.status(404).json({ error: 'Pasto non trovato' })
+
+    const food = await prisma.foodItem.findFirst({ where: { id: foodId, mealId } })
+    if (!food) return res.status(404).json({ error: 'Alimento non trovato' })
+
+    await prisma.foodItem.update({
+      where: { id: foodId },
+      data: {
+        name: name ?? undefined,
+        quantityG: quantityG != null ? Number(quantityG) : undefined,
+        calories: calories != null ? Number(calories) : undefined,
+        proteinG: proteinG != null ? Number(proteinG) : undefined,
+        carbsG: carbsG != null ? Number(carbsG) : undefined,
+        fatsG: fatsG != null ? Number(fatsG) : undefined,
+      },
+    })
+
+    const items = await prisma.foodItem.findMany({ where: { mealId } })
+    const total = items.reduce((s, f) => s + (f.calories ?? 0), 0)
+
+    const updatedMeal = await prisma.meal.update({
+      where: { id: mealId },
+      data: { totalCalories: total },
+      include: { foodItems: true },
+    })
+
+    res.json({ meal: updatedMeal })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteFoodItem(req, res, next) {
+  try {
+    const { mealId, foodId } = req.params
+
+    const meal = await prisma.meal.findFirst({ where: { id: mealId, userId: req.userId } })
+    if (!meal) return res.status(404).json({ error: 'Pasto non trovato' })
+
+    const food = await prisma.foodItem.findFirst({ where: { id: foodId, mealId } })
+    if (!food) return res.status(404).json({ error: 'Alimento non trovato' })
+
+    await prisma.foodItem.delete({ where: { id: foodId } })
+
+    const remaining = await prisma.foodItem.count({ where: { mealId } })
+    if (remaining === 0) {
+      await prisma.meal.delete({ where: { id: mealId } })
+      return res.json({ meal: null })
+    }
+
+    const items = await prisma.foodItem.findMany({ where: { mealId } })
+    const total = items.reduce((s, f) => s + (f.calories ?? 0), 0)
+
+    const updatedMeal = await prisma.meal.update({
+      where: { id: mealId },
+      data: { totalCalories: total },
+      include: { foodItems: true },
+    })
+
+    res.json({ meal: updatedMeal })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function createMeal(req, res, next) {
   try {
     const { dietPlanId, type, date, totalCalories, foodItems } = req.body

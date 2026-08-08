@@ -1809,7 +1809,7 @@ body {
 .food-row {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   padding: var(--space-sm) 0;
 }
 
@@ -1817,10 +1817,19 @@ body {
   border-top: 1px solid var(--border);
 }
 
-.food-name {
+.food-row-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.food-name {
   font-size: 0.8125rem;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .food-qty {
@@ -1832,6 +1841,47 @@ body {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.food-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.food-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.food-action-btn:hover {
+  color: var(--text-primary);
+}
+
+.food-action-danger {
+  color: var(--error);
+}
+
+.meal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-md);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.meal-empty p {
+  font-size: 0.8125rem;
+  margin: 0;
 }
 
 .diet-ai-btn {
@@ -2492,6 +2542,10 @@ body {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
+}
+
+.modal-sm {
+  max-width: 360px;
 }
 
 .modal-scroll {
@@ -3724,6 +3778,204 @@ html.light .bottom-nav {
 .mf-suggest-meta {
   font-size: 0.6875rem;
   color: var(--text-muted);
+}
+
+/* ── Contesto pasto ── */
+
+.meal-context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-radius: 999px;
+  width: fit-content;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ── Manual food: ricerca ── */
+
+.mf-search-wrap {
+  margin-bottom: var(--space-sm);
+}
+
+.mf-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.mf-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.mf-empty-hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: var(--space-sm) 0;
+}
+
+.mf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mf-row:hover,
+.mf-row:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.mf-row-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.mf-row-meta {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.mf-free-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  text-align: left;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mf-free-row:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.mf-back {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--space-xs) 0 var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.mf-food-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.mf-food-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mf-food-per100 {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.mf-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px var(--space-md);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mf-computed {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Edit quantità ── */
+
+.edit-food-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm);
+}
+
+.edit-computed {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: var(--space-sm) 0 0;
+}
+
+/* ── Quick confirm ── */
+
+.confirm-pop {
+  max-width: 320px;
+}
+
+.confirm-text {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md);
+  text-align: center;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.confirm-actions .btn {
+  flex: 1;
+}
+
+.btn-danger {
+  background: var(--error);
+  color: #fff;
 }
 
 /* ── Desktop: read-only ── */

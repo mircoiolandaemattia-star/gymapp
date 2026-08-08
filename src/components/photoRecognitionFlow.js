@@ -4,6 +4,7 @@ import { freeLimitBanner } from '/src/components/freeLimitBanner.js'
 import { aiErrorBox } from '/src/components/aiErrorBox.js'
 import { apiFetch } from '/src/utils/api.js'
 import { getUser } from '/src/utils/auth.js'
+import { mealContext } from '/src/components/mealContext.js'
 
 const PHOTO_LIMIT_FREE = 2
 
@@ -26,6 +27,7 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
   hTitle.className = 'modal-title'
   hTitle.textContent = 'Scatta foto'
   header.appendChild(hTitle)
+  header.appendChild(mealContext(mealName))
   const closeBtn = document.createElement('button')
   closeBtn.className = 'modal-close'
   closeBtn.appendChild(createIcon(X, 20, 2))
