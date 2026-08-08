@@ -58,6 +58,28 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 #app {
   max-width: 480px;
   margin: 0 auto;
@@ -4071,9 +4093,24 @@ html.light .bottom-nav {
   color: #fff;
 }
 
+/* ── Desktop layout ── */
+/* Su desktop la colonna si allarga e i margini aumentano, niente colonna telefonino stretta */
+
+@media (min-width: 768px) {
+  #app {
+    max-width: 720px;
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+
+  .bottom-nav {
+    max-width: 720px;
+  }
+}
+
 /* ── Desktop: read-only ── */
-/* TEMP: rimosso per test su desktop; riabilitare in produzione */
-/*
+/* Su desktop (mouse) le azioni di scrittura sono nascoste: l'app diventa leggibile */
+
 @media (min-width: 768px) and (pointer: fine) {
   .meal-add-btn,
   .diet-ai-btn {
@@ -4090,7 +4127,6 @@ html.light .bottom-nav {
     display: none;
   }
 }
-*/
 
 /* ── Mobile: niente zoom iOS sui form ── */
 /* iOS Safari ingrandisce automaticamente i campi con font-size < 16px */
@@ -4099,5 +4135,25 @@ html.light .bottom-nav {
   select,
   textarea {
     font-size: 16px !important;
+  }
+}
+
+/* ── Mobile: touch target minimi (>=44px) ── */
+
+@media (hover: none) and (pointer: coarse) {
+  .modal-close,
+  .day-selector-btn,
+  .card-add-btn,
+  .scheda-add-btn,
+  .home-user-btn,
+  .meal-add-btn,
+  .food-action-btn,
+  .btn-icon-sm,
+  .password-eye-btn,
+  .photo-add-btn,
+  .measure-add-btn,
+  .reminder-add-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
