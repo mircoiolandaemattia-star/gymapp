@@ -4168,3 +4168,161 @@ html.light .bottom-nav {
     min-height: 44px;
   }
 }
+
+/* ── Install Prompt (full screen) ── */
+
+.install-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  overflow-y: auto;
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+}
+
+.install-panel {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl) var(--space-lg);
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.install-close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+}
+
+.install-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-md);
+}
+
+.install-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.install-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  margin-top: var(--space-xs);
+}
+
+.install-card {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.install-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.install-hint {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.install-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: left;
+}
+
+.install-step-num {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-step-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-step-text {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.install-readonly {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-top: var(--space-lg);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.install-actions {
+  margin-top: var(--space-lg);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.install-later {
+  padding: var(--space-md);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.install-later:hover {
+  color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+  .install-overlay {
+    padding: var(--space-2xl);
+  }
+}

@@ -1,6 +1,7 @@
 import '/src/styles/base.css'
 import { router, isActiveWorkout } from '/src/utils/router.js'
 import { bottomNav } from '/src/components/bottomNav.js'
+import { maybeShowInstallPrompt } from '/src/components/installPrompt.js'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -30,3 +31,10 @@ function render() {
 
 window.addEventListener('popstate', render)
 render()
+
+setTimeout(() => {
+  const path = window.location.pathname || '/'
+  if (!isActiveWorkout() && !AUTH_PATHS.includes(path)) {
+    maybeShowInstallPrompt()
+  }
+}, 4000)
