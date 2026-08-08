@@ -29,6 +29,7 @@ services:
     env_file:
       - ./server/.env
     environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://fittrack:fittrack@db:5432/fittrack?schema=public}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_IN: 7d
       PORT: 3000
