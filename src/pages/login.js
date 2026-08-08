@@ -109,7 +109,9 @@ function render() {
       .catch((err) => {
         email.setError()
         password.setError()
-        errorBox.textContent = err.message || 'Email o password errati'
+        errorBox.textContent = err.message && err.message !== 'Email o password errati'
+          ? err.message
+          : 'Email o password errati'
         errorBox.hidden = false
       })
       .finally(() => {

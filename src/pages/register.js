@@ -20,6 +20,7 @@ function authLogo() {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).+$/
 
 const TERMS_TEXT =
   'Accettando i termini e le condizioni confermi di aver letto e compreso le informazioni sull’utilizzo di FitTrack. ' +
@@ -195,6 +196,13 @@ function render() {
   })
   password.input.addEventListener('input', () => {
     strength.update(password.getValue())
+    if (password.getValue() && password.getValue().length < 8) {
+      password.setError('Minimo 8 caratteri')
+    } else if (password.getValue() && !PASSWORD_RE.test(password.getValue())) {
+      password.setError('Servono almeno una lettera e un numero')
+    } else {
+      password.setError()
+    }
     if (confirm.getValue() && confirm.getValue() !== password.getValue()) {
       confirm.setError('Le password non coincidono')
     } else {
@@ -217,6 +225,7 @@ function render() {
       Boolean(name.getValue().trim()) &&
       EMAIL_RE.test(email.getValue().trim()) &&
       password.getValue().length >= 8 &&
+      PASSWORD_RE.test(password.getValue()) &&
       confirm.getValue() === password.getValue() &&
       checkbox.checked
     submitBtn.disabled = !valid
