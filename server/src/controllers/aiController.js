@@ -1,49 +1,11 @@
 import prisma from '../prisma.js'
 import { generateContent } from '../utils/gemini.js'
-
-const FREE_PHOTO_LIMIT = 2
-const PHOTO_ACTION = 'photo_recognition'
+import { PHOTO_ACTION } from '../middleware/premium.js'
 
 function startOfDay() {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
   return d
-}
-
-async function getUser(userId) {
-  const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) {
-    const err = new Error('Utente non trovato')
-    err.status = 404
-    throw err
-  }
-  return user
-}
-
-function isPremiumOrTrial(user) {
-  if (user.isPremium) return true
-  if (user.isTrial && user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) return true
-  return false
-}
-
-function requirePremium(user) {
-  if (!isPremiumOrTrial(user)) {
-    const err = new Error('Funzione riservata agli utenti Premium')
-    err.status = 403
-    throw err
-  }
-}
-
-async function getUsageToday(userId, actionType) {
-  const today = startOfDay()
-  const log = await prisma.aiUsageLog.findFirst({
-    where: {
-      userId,
-      actionType,
-      usedOn: { gte: today, lt: new Date(today.getTime() + 86400000) },
-    },
-  })
-  return log?.count ?? 0
 }
 
 async function incrementUsage(userId, actionType) {
@@ -110,15 +72,6 @@ export async function recognizeMeal(req, res, next) {
       return res.status(400).json({ error: 'La descrizione del pasto è obbligatoria' })
     }
 
-    const user = await getUser(req.userId)
-
-    if (!isPremiumOrTrial(user)) {
-      const used = await getUsageToday(req.userId, PHOTO_ACTION)
-      if (used >= FREE_PHOTO_LIMIT) {
-        return res.status(403).json({ error: 'Limite giornaliero raggiunto' })
-      }
-    }
-
     const prompt = `Analizza la foto di un pasto insieme alla descrizione fornita dall'utente: "${description}". Stima le quantità e le porzioni degli ingredienti visibili nella foto. Rispondi SOLO con un oggetto JSON valido nel formato:
 {"name":"nome del pasto","calories":numero totale kcal,"proteinG":grammi proteine,"carbsG":grammi carboidrati,"fatsG":grammi grassi,"items":[{"name":"ingrediente","quantityG":grammi}]}`
 
@@ -144,9 +97,6 @@ export async function generateWorkout(req, res, next) {
   try {
     const { goal, level, days, equipment } = req.body
 
-    const user = await getUser(req.userId)
-    requirePremium(user)
-
     const prompt = `Genera una scheda di allenamento settimanale per il fitness. Parametri:
 - Obiettivo: ${goal || 'non specificato'}
 - Livello: ${level || 'Principiante'}
@@ -167,9 +117,6 @@ Per ogni giorno includi nome, gruppo muscolare e lista di esercizi con serie, ri
 export async function generateDiet(req, res, next) {
   try {
     const { goal, allergens, preferences, mealsPerDay, dailyCalories } = req.body
-
-    const user = await getUser(req.userId)
-    requirePremium(user)
 
     const prompt = `Genera un piano alimentare settimanale bilanciato. Parametri:
 - Obiettivo: ${goal || 'non specificato'}
@@ -192,9 +139,6 @@ Per ogni giorno elenca i pasti (colazione, pranzo, cena, eventuali spuntini) con
 export async function parseFile(req, res, next) {
   try {
     const { fileBase64, mimeType, type } = req.body
-
-    const user = await getUser(req.userId)
-    requirePremium(user)
 
     if (!fileBase64) return res.status(400).json({ error: 'File mancante' })
     if (type !== 'workout' && type !== 'diet') {

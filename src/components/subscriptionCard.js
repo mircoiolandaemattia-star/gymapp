@@ -128,13 +128,13 @@ function subscriptionCard({ plan, onTrial, onUpgrade, onCancel }) {
     trialBtn.className = 'btn btn-primary btn-full'
     trialBtn.appendChild(createIcon(Crown, 16, 2))
     const tb = document.createElement('span')
-    tb.textContent = 'Prova gratis 30 giorni'
+    tb.textContent = plan.hasTrial ? 'Passa a Premium · 25€/anno' : 'Prova gratis 30 giorni'
     trialBtn.appendChild(tb)
-    trialBtn.addEventListener('click', onTrial)
+    trialBtn.addEventListener('click', plan.hasTrial ? onUpgrade : onTrial)
     actions.appendChild(trialBtn)
     const current = document.createElement('span')
     current.className = 'plan-current'
-    current.textContent = 'Piano attuale: Free'
+    current.textContent = plan.hasTrial ? 'Trial gi\u00e0 utilizzato' : 'Piano attuale: Free'
     actions.appendChild(current)
     card.appendChild(actions)
   }

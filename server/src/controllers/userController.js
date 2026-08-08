@@ -1,4 +1,5 @@
 import prisma from '../prisma.js'
+import { resolveTrialExpiry } from '../middleware/premium.js'
 
 const ACTIVITY_FACTORS = {
   sedentary: 1.2,
@@ -35,8 +36,31 @@ function computeDailyCalories({ gender, age, weightKg, heightCm, activityLevel, 
 
 export async function getMe(req, res, next) {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.userId } })
+    let user = await prisma.user.findUnique({ where: { id: req.userId } })
     if (!user) return res.status(404).json({ error: 'Utente non trovato' })
+    user = await resolveTrialExpiry(user)
+    res.json({ user: sanitize(user) })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function startTrial(req, res, next) {
+  try {
+    let user = await prisma.user.findUnique({ where: { id: req.userId } })
+    if (!user) return res.status(404).json({ error: 'Utente non trovato' })
+
+    user = await resolveTrialExpiry(user)
+
+    if (!user.isPremium && !(user.isTrial && user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) {
+      const trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + 30)
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { isTrial: true, trialEndsAt },
+      })
+    }
+
     res.json({ user: sanitize(user) })
   } catch (err) {
     next(err)

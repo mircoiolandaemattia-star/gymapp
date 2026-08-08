@@ -2778,6 +2778,99 @@ body {
   color: var(--text-secondary);
 }
 
+.opt-lock {
+  margin-left: auto;
+  align-self: center;
+}
+
+.photo-left-hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.photo-left-hint.gone {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* ── Premium Upsell Modal ── */
+
+.up-modal {
+  max-width: 400px;
+}
+
+.up-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-sm);
+}
+
+.up-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--warning);
+  margin-bottom: var(--space-xs);
+}
+
+.up-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.up-sub {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.up-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  margin: var(--space-sm) 0 var(--space-md);
+}
+
+.up-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.up-features li svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.up-price {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.up-price small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.up-back {
+  margin-top: var(--space-xs);
+}
+
 /* ── Upload Zone ── */
 
 .upload-zone {

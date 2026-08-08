@@ -39,7 +39,6 @@ let user = {}
 let goal = 'mantenere'
 let activity = 'moderato'
 let reminders = []
-let plan = loadPlan()
 let notifications = storage.get(KEYS.notifications) !== false
 let darkMode = storage.get(KEYS.theme) !== 'light'
 let editingData = false
@@ -75,13 +74,12 @@ function syncUser() {
 }
 
 function loadPlan() {
-  const stored = storage.get(KEYS.plan)
-  if (stored && stored.tier) return stored
-  return { tier: 'free' }
-}
-
-function persistPlan() {
-  storage.set(KEYS.plan, plan)
+  const u = getUser()
+  if (u.isPremium) return { tier: 'premium' }
+  if (u.isTrial && u.trialEndsAt && new Date(u.trialEndsAt) > new Date()) {
+    return { tier: 'trial', trialEnd: u.trialEndsAt }
+  }
+  return { tier: 'free', hasTrial: Boolean(u.trialEndsAt) }
 }
 
 function syncGoalActivity() {
@@ -160,6 +158,7 @@ async function load() {
   loadError = null
   paint()
   try {
+    await refreshUser()
     const rData = await apiFetch('/reminders')
     reminders = (rData.reminders || []).map(mapApiReminder)
     loaded = true
@@ -214,7 +213,7 @@ function paint() {
     section.appendChild(errCard.el)
   }
 
-  section.appendChild(profileHeader({ name: user.name, email: user.email, plan }))
+  section.appendChild(profileHeader({ name: user.name, email: user.email, plan: loadPlan() }))
 
   section.appendChild(personalDataCard({
     data: user,
@@ -335,21 +334,44 @@ function paint() {
   }))
 
   section.appendChild(subscriptionCard({
-    plan,
-    onTrial: () => {
-      plan = { tier: 'trial', trialEnd: new Date(Date.now() + 30 * 86400000).toISOString() }
-      persistPlan()
-      paint()
+    plan: loadPlan(),
+    onTrial: async () => {
+      try {
+        const res = await apiFetch('/user/start-trial', { method: 'POST' })
+        setUser(res.user)
+        await refreshUser()
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nell\'avvio della prova gratuita')
+      }
     },
-    onUpgrade: () => {
-      plan = { tier: 'premium', renewDate: new Date(Date.now() + 365 * 86400000).toISOString() }
-      persistPlan()
-      paint()
+    onUpgrade: async () => {
+      try {
+        const res = await apiFetch('/user/me', {
+          method: 'PUT',
+          body: JSON.stringify({ isPremium: true }),
+        })
+        setUser(res.user)
+        await refreshUser()
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nel passaggio a Premium')
+      }
     },
-    onCancel: () => {
-      plan = { tier: 'free' }
-      persistPlan()
-      paint()
+    onCancel: async () => {
+      const current = getUser()
+      const body = current.isPremium ? { isPremium: false } : { isTrial: false }
+      try {
+        const res = await apiFetch('/user/me', {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        })
+        setUser(res.user)
+        await refreshUser()
+        paint()
+      } catch (err) {
+        alert(err.message || 'Errore nella modifica dell\'abbonamento')
+      }
     },
   }))
 

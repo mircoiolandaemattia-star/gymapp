@@ -18,7 +18,7 @@ function freeLimitBanner({ used, max, onClose }) {
 
   const text = document.createElement('p')
   text.className = 'free-limit-text'
-  text.textContent = 'Passa a Premium per foto illimitate'
+  text.textContent = `Hai usato ${used}/${max} foto oggi. Si sbloccano domani, oppure passa a Premium per foto illimitate.`
   wrap.appendChild(text)
 
   const btn = document.createElement('button')

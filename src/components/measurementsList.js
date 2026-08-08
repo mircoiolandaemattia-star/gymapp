@@ -27,6 +27,18 @@ function measurementsList({ measurements, onAdd }) {
   header.appendChild(addBtn)
   card.appendChild(header)
 
+  if (!measurements.length) {
+    const empty = document.createElement('button')
+    empty.className = 'photo-empty'
+    empty.appendChild(createIcon(Ruler, 36, 1.5))
+    const text = document.createElement('span')
+    text.textContent = 'Aggiungi la prima misurazione'
+    empty.appendChild(text)
+    empty.addEventListener('click', onAdd)
+    card.appendChild(empty)
+    return card
+  }
+
   const latest = measurements[0]
   const prev = measurements[1] || latest
 

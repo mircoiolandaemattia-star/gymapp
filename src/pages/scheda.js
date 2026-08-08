@@ -1,5 +1,5 @@
 import { createIcon } from '/src/utils/icons.js'
-import { Plus, Dumbbell, Trash2, X } from 'lucide'
+import { Plus, Dumbbell, Trash2, X, Lock } from 'lucide'
 import { navigate } from '/src/utils/router.js'
 import { fetchWorkoutPlans, fetchWorkoutSessions, deleteWorkoutPlan, toDayCard, toHistoryItem } from '/src/utils/workoutApi.js'
 import { workoutDayCard } from '/src/components/workoutDayCard.js'
@@ -8,6 +8,8 @@ import { createWorkoutModal } from '/src/components/createWorkoutModal.js'
 import { uploadWorkoutModal } from '/src/components/uploadWorkoutModal.js'
 import { generateWorkoutModal } from '/src/components/generateWorkoutModal.js'
 import { editWorkoutModal } from '/src/components/editWorkoutModal.js'
+import { premiumUpsellModal } from '/src/components/premiumUpsellModal.js'
+import { hasPremiumAccess } from '/src/utils/premium.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 
 function render() {
@@ -192,10 +194,12 @@ function showCreateOptions() {
   sTitle.textContent = 'Nuova scheda'
   sheet.appendChild(sTitle)
 
+  const premiumAllowed = hasPremiumAccess()
+
   const options = [
     { icon: Plus, label: 'Crea manualmente', desc: 'Crea la tua scheda da zero', action: () => { close(); createWorkoutModal({ onSaved: reload }) } },
-    { icon: Dumbbell, label: 'Carica scheda esistente', desc: 'Importa da file immagine o PDF', action: () => { close(); uploadWorkoutModal({ onSaved: reload }) } },
-    { icon: Plus, label: 'Genera con AI', desc: 'Lascia che l\'AI crei la scheda per te', action: () => { close(); generateWorkoutModal({ onSaved: reload }) } },
+    { icon: Dumbbell, label: 'Carica scheda esistente', desc: 'Importa da file immagine o PDF', premium: true, action: () => { close(); uploadWorkoutModal({ onSaved: reload }) } },
+    { icon: Plus, label: 'Genera con AI', desc: 'Lascia che l\'AI crei la scheda per te', premium: true, action: () => { close(); generateWorkoutModal({ onSaved: reload }) } },
   ]
 
   options.forEach((opt) => {
@@ -216,7 +220,23 @@ function showCreateOptions() {
     dsc.textContent = opt.desc
     info.appendChild(dsc)
     item.appendChild(info)
-    item.addEventListener('click', opt.action)
+    if (opt.premium && !premiumAllowed) {
+      const badge = document.createElement('span')
+      badge.className = 'plan-badge plan-premium opt-lock'
+      badge.appendChild(createIcon(Lock, 11, 2))
+      const badgeText = document.createElement('span')
+      badgeText.textContent = 'Premium'
+      badge.appendChild(badgeText)
+      item.appendChild(badge)
+    }
+    item.addEventListener('click', () => {
+      if (opt.premium && !premiumAllowed) {
+        close()
+        premiumUpsellModal({ title: opt.label })
+        return
+      }
+      opt.action()
+    })
     sheet.appendChild(item)
   })
 

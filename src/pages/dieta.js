@@ -9,6 +9,8 @@ import { generateDietFlow } from '/src/components/generateDietFlow.js'
 import { uploadDietModal } from '/src/components/uploadDietModal.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 import { quickConfirm } from '/src/components/quickConfirm.js'
+import { premiumUpsellModal } from '/src/components/premiumUpsellModal.js'
+import { hasPremiumAccess } from '/src/utils/premium.js'
 
 const MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
@@ -204,7 +206,7 @@ function paint() {
   aiLabel.textContent = 'Genera dieta con AI'
   aiBtn.appendChild(aiLabel)
   aiBtn.addEventListener('click', () => {
-    generateDietFlow({})
+    premiumGate('Genera dieta con AI', () => generateDietFlow({}))
   })
   section.appendChild(aiBtn)
 
@@ -215,7 +217,9 @@ function paint() {
   const uploadLabel = document.createElement('span')
   uploadLabel.textContent = 'Carica dieta esistente'
   uploadBtn.appendChild(uploadLabel)
-  uploadBtn.addEventListener('click', openUploadDiet)
+  uploadBtn.addEventListener('click', () => {
+    premiumGate('Carica dieta esistente', openUploadDiet)
+  })
   section.appendChild(uploadBtn)
 }
 
@@ -301,7 +305,9 @@ function buildPlanCard() {
     const genLabel = document.createElement('span')
     genLabel.textContent = 'Genera dieta'
     genBtn.appendChild(genLabel)
-    genBtn.addEventListener('click', () => generateDietFlow({}))
+    genBtn.addEventListener('click', () => {
+      premiumGate('Genera dieta con AI', () => generateDietFlow({}))
+    })
     card.appendChild(genBtn)
     return card
   }
@@ -523,6 +529,14 @@ function confirmDeleteFood(food) {
 
 function openUploadDiet() {
   uploadDietModal()
+}
+
+function premiumGate(label, open) {
+  if (!hasPremiumAccess()) {
+    premiumUpsellModal({ title: label })
+    return
+  }
+  open()
 }
 
 export { render }
