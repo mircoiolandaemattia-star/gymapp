@@ -4091,3 +4091,13 @@ html.light .bottom-nav {
   }
 }
 */
+
+/* ── Mobile: niente zoom iOS sui form ── */
+/* iOS Safari ingrandisce automaticamente i campi con font-size < 16px */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
