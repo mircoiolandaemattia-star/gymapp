@@ -88,6 +88,7 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
 
   function showPick() {
     body.innerHTML = ''
+    body.appendChild(fileInput)
 
     const pick = document.createElement('div')
     pick.className = 'photo-pick'
@@ -144,13 +145,36 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
 
     const group = document.createElement('div')
     group.className = 'input-group'
-    group.innerHTML = '<label>Descrivi il pasto</label>'
+    const label = document.createElement('label')
+    label.textContent = 'Descrivi gli ingredienti'
+    group.appendChild(label)
     const desc = document.createElement('textarea')
     desc.className = 'input textarea'
-    desc.placeholder = 'Descrivi cosa hai mangiato (es. petto di pollo con riso e verdure)'
+    desc.placeholder = 'Es. petto di pollo alla griglia con riso e verdure, condito con olio d\u2019oliva'
     desc.setAttribute('rows', '3')
     group.appendChild(desc)
+    const descHelp = document.createElement('p')
+    descHelp.className = 'input-help'
+    descHelp.textContent = "Descrivi gli ingredienti e la preparazione, l'AI stimerà le quantità dalla foto"
+    group.appendChild(descHelp)
     preview.appendChild(group)
+
+    const chips = document.createElement('div')
+    chips.className = 'photo-chips'
+    const presets = ['Pasta al pomodoro', 'Petto di pollo con verdure', 'Insalata con tonno e uova']
+    presets.forEach((text) => {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = 'chip'
+      chip.textContent = text
+      chip.addEventListener('click', () => {
+        desc.value = text
+        desc.focus()
+        desc.dispatchEvent(new Event('input'))
+      })
+      chips.appendChild(chip)
+    })
+    preview.appendChild(chips)
 
     const analyzeBtn = document.createElement('button')
     analyzeBtn.className = 'btn btn-primary btn-full'
@@ -222,11 +246,26 @@ function photoRecognitionFlow({ mealName, onFoodAdded }) {
       const row = document.createElement('div')
       row.className = 'photo-ingredient-row'
       const nm = document.createElement('span')
+      nm.className = 'photo-ingredient-name'
       nm.textContent = it.name
       row.appendChild(nm)
-      const qty = document.createElement('span')
-      qty.textContent = `${it.quantityG}g`
-      row.appendChild(qty)
+      const qtyWrap = document.createElement('div')
+      qtyWrap.className = 'photo-ingredient-qty'
+      const qty = document.createElement('input')
+      qty.type = 'number'
+      qty.min = '0'
+      qty.className = 'input input-sm input-num'
+      qty.value = String(Number(it.quantityG) || 0)
+      qty.setAttribute('aria-label', `Quantità in grammi di ${it.name}`)
+      qty.addEventListener('input', () => {
+        it.quantityG = Number(qty.value) || 0
+      })
+      qtyWrap.appendChild(qty)
+      const unit = document.createElement('span')
+      unit.className = 'input-suffix'
+      unit.textContent = 'g'
+      qtyWrap.appendChild(unit)
+      row.appendChild(qtyWrap)
       ingredients.appendChild(row)
     })
     form.appendChild(ingredients)

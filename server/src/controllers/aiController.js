@@ -72,7 +72,10 @@ export async function recognizeMeal(req, res, next) {
       return res.status(400).json({ error: 'La descrizione del pasto è obbligatoria' })
     }
 
-    const prompt = `Analizza la foto di un pasto insieme alla descrizione fornita dall'utente: "${description}". Stima le quantità e le porzioni degli ingredienti visibili nella foto. Rispondi SOLO con un oggetto JSON valido nel formato:
+    const prompt = `Analizza la foto di un pasto insieme alla descrizione fornita dall'utente: "${description}". 
+Usa la descrizione fornita dall'utente per identificare esattamente quali ingredienti sono presenti nel piatto (es. distinguere il pollo dal tacchino, riconoscere i condimenti menzionati come olio d'oliva o burro).
+Usa invece l'analisi visiva della foto per stimare le quantità in grammi di ciascun ingrediente, basandoti su porzioni standard e sul confronto visivo con piatto/posate visibili nella foto.
+Ogni ingrediente menzionato nella descrizione deve comparire in "items". Rispondi SOLO con un oggetto JSON valido nel formato:
 {"name":"nome del pasto","calories":numero totale kcal,"proteinG":grammi proteine,"carbsG":grammi carboidrati,"fatsG":grammi grassi,"items":[{"name":"ingrediente","quantityG":grammi}]}`
 
     const files = imageFile(image, mimeType) ? [imageFile(image, mimeType)] : []

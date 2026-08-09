@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/generate-precache.mjs",
-"preview": "vite preview",
-    "mobile": "node scripts/serve-https.mjs"
+    "preview": "vite preview",
+    "mobile": "node scripts/serve-https.mjs",
+    "docker:local:up": "docker compose -f docker-compose.yml up -d",
+    "docker:local:down": "docker compose -f docker-compose.yml down",
+    "docker:local:logs": "docker compose -f docker-compose.yml logs -f backend",
+    "docker:local:reset": "docker compose -f docker-compose.yml down -v && docker compose -f docker-compose.yml up -d"
   },
   "devDependencies": {
     "vite": "^6.3.5"

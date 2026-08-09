@@ -1986,6 +1986,40 @@ textarea {
   color: var(--text-muted);
 }
 
+.input-help {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: var(--space-xs) 0 0;
+}
+
+.photo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.photo-ingredient-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.photo-ingredient-name {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.photo-ingredient-qty {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .macro-input-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
