@@ -9,6 +9,15 @@ function num(value) {
   return Math.round(n * 10) / 10
 }
 
+function readNutrient(nutriments, key) {
+  const raw = nutriments[key]
+  const missing = raw === undefined || raw === null || String(raw).trim() === ''
+  return {
+    value: missing ? 0 : num(raw),
+    missing,
+  }
+}
+
 async function fetchJson(url) {
   let lastErr
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -46,12 +55,22 @@ export async function getFoodByBarcode(req, res, next) {
     const product = data.product
     const n = product.nutriments || {}
 
+    console.log('[OFF barcode] nutriments:', JSON.stringify(n))
+
+    const cal = readNutrient(n, 'energy-kcal_100g')
+    const prot = readNutrient(n, 'proteins_100g')
+    const carb = readNutrient(n, 'carbohydrates_100g')
+    const fat = readNutrient(n, 'fat_100g')
+
+    const dataIncomplete = cal.missing || prot.missing || carb.missing || fat.missing
+
     res.json({
       name: product.product_name || product.generic_name || `Prodotto ${code}`,
-      caloriesPer100g: num(n['energy-kcal_100g']),
-      proteinPer100g: num(n.proteins_100g),
-      carbsPer100g: num(n.carbohydrates_100g),
-      fatsPer100g: num(n.fat_100g),
+      caloriesPer100g: cal.value,
+      proteinPer100g: prot.value,
+      carbsPer100g: carb.value,
+      fatsPer100g: fat.value,
+      dataIncomplete,
     })
   } catch (err) {
     next(err)
@@ -72,13 +91,18 @@ export async function searchFoods(req, res, next) {
       .filter((p) => p.product_name)
       .map((p) => {
         const n = p.nutriments || {}
+        const cal = readNutrient(n, 'energy-kcal_100g')
+        const prot = readNutrient(n, 'proteins_100g')
+        const carb = readNutrient(n, 'carbohydrates_100g')
+        const fat = readNutrient(n, 'fat_100g')
         return {
           name: p.product_name,
           brand: p.brands || null,
-          caloriesPer100g: num(n['energy-kcal_100g']),
-          proteinPer100g: num(n.proteins_100g),
-          carbsPer100g: num(n.carbohydrates_100g),
-          fatsPer100g: num(n.fat_100g),
+          caloriesPer100g: cal.value,
+          proteinPer100g: prot.value,
+          carbsPer100g: carb.value,
+          fatsPer100g: fat.value,
+          dataIncomplete: cal.missing || prot.missing || carb.missing || fat.missing,
         }
       })
 

@@ -221,6 +221,17 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
     per100.textContent = `Valori per 100g: ${data.caloriesPer100g} kcal · ${data.proteinPer100g}g proteine · ${data.carbsPer100g}g carboidrati · ${data.fatsPer100g}g grassi`
     box.appendChild(per100)
 
+    if (data.dataIncomplete) {
+      const warn = document.createElement('div')
+      warn.className = 'bc-warning'
+      const warnIcon = createIcon(AlertTriangle, 16, 1.5)
+      warn.appendChild(warnIcon)
+      const warnText = document.createElement('span')
+      warnText.textContent = 'Dati nutrizionali parziali, verifica manualmente'
+      warn.appendChild(warnText)
+      box.appendChild(warn)
+    }
+
     const qtyGroup = document.createElement('div')
     qtyGroup.className = 'input-group'
     qtyGroup.innerHTML = '<label for="bc-qty">Quantità consumata (g)</label>'

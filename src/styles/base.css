@@ -2058,6 +2058,19 @@ textarea {
   color: var(--text-secondary);
 }
 
+.bc-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: var(--warning);
+  border-radius: var(--radius-md);
+  padding: 10px var(--space-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
 .barcode-computed {
   display: flex;
   flex-direction: column;
