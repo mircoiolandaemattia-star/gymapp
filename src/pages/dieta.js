@@ -1,5 +1,5 @@
 import { createIcon } from '/src/utils/icons.js'
-import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles, Upload, X, Save } from 'lucide'
+import { ChevronLeft, ChevronRight, Droplet, Wheat, CircleDot, Sparkles, Upload, X, Save, Pencil, Trash2 } from 'lucide'
 import { getNutritionTargets } from '/src/utils/nutritionTargets.js'
 import { apiFetch } from '/src/utils/api.js'
 import { macroProgressBar } from '/src/components/macroProgressBar.js'
@@ -7,6 +7,7 @@ import { mealSection } from '/src/components/mealSection.js'
 import { addFoodModal } from '/src/components/addFoodModal.js'
 import { generateDietFlow } from '/src/components/generateDietFlow.js'
 import { uploadDietModal } from '/src/components/uploadDietModal.js'
+import { dietPlanEditor } from '/src/components/dietPlanEditor.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 import { quickConfirm } from '/src/components/quickConfirm.js'
 import { premiumUpsellModal } from '/src/components/premiumUpsellModal.js'
@@ -206,7 +207,7 @@ function paint() {
   aiLabel.textContent = 'Genera dieta con AI'
   aiBtn.appendChild(aiLabel)
   aiBtn.addEventListener('click', () => {
-    premiumGate('Genera dieta con AI', () => generateDietFlow({}))
+    premiumGate('Genera dieta con AI', () => generateDietFlow({ onSaveDiet: reload }))
   })
   section.appendChild(aiBtn)
 
@@ -306,7 +307,7 @@ function buildPlanCard() {
     genLabel.textContent = 'Genera dieta'
     genBtn.appendChild(genLabel)
     genBtn.addEventListener('click', () => {
-      premiumGate('Genera dieta con AI', () => generateDietFlow({}))
+      premiumGate('Genera dieta con AI', () => generateDietFlow({ onSaveDiet: reload }))
     })
     card.appendChild(genBtn)
     return card
@@ -323,6 +324,44 @@ function buildPlanCard() {
     ? `${planned} kcal pianificate · ${logged} kcal registrate`
     : 'Nessun pasto pianificato per oggi'
   card.appendChild(plannedLabel)
+
+  const planActions = document.createElement('div')
+  planActions.style.cssText = 'display:flex;gap:8px;margin-top:var(--space-md)'
+  const editBtn = document.createElement('button')
+  editBtn.className = 'btn btn-outline'
+  editBtn.style.flex = '1'
+  editBtn.appendChild(createIcon(Pencil, 16, 2))
+  const editLabel = document.createElement('span')
+  editLabel.textContent = 'Modifica'
+  editBtn.appendChild(editLabel)
+  editBtn.addEventListener('click', () => {
+    dietPlanEditor({ plan: activePlan, onSaved: reload })
+  })
+  planActions.appendChild(editBtn)
+  const delBtn = document.createElement('button')
+  delBtn.className = 'btn btn-danger'
+  delBtn.style.flex = '1'
+  delBtn.appendChild(createIcon(Trash2, 16, 2))
+  const delLabel = document.createElement('span')
+  delLabel.textContent = 'Elimina'
+  delBtn.appendChild(delLabel)
+  delBtn.addEventListener('click', () => {
+    quickConfirm({
+      message: 'Eliminare il piano alimentare?',
+      confirmText: 'Elimina',
+      onConfirm: async () => {
+        try {
+          await apiFetch('/diet-plans', { method: 'DELETE' })
+          activePlan = null
+          reload()
+        } catch (err) {
+          alert(err.message || "Errore nell'eliminazione del piano")
+        }
+      },
+    })
+  })
+  planActions.appendChild(delBtn)
+  card.appendChild(planActions)
 
   if (planned > 0) {
     const pct = Math.min(100, Math.round((logged / planned) * 100))
@@ -528,7 +567,7 @@ function confirmDeleteFood(food) {
 }
 
 function openUploadDiet() {
-  uploadDietModal()
+  uploadDietModal({ onSaved: reload })
 }
 
 function premiumGate(label, open) {

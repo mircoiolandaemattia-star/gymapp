@@ -94,3 +94,12 @@ export async function saveDietPlan(req, res, next) {
     next(err)
   }
 }
+
+export async function deleteDietPlan(req, res, next) {
+  try {
+    await prisma.dietPlan.deleteMany({ where: { userId: req.userId } })
+    res.status(204).end()
+  } catch (err) {
+    next(err)
+  }
+}

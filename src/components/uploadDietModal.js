@@ -3,7 +3,7 @@ import { X, Upload, FileText, Loader, CheckCircle, ClipboardCheck } from 'lucide
 import { apiFetch } from '/src/utils/api.js'
 import { aiErrorBox } from '/src/components/aiErrorBox.js'
 
-function uploadDietModal() {
+function uploadDietModal({ onSaved } = {}) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
@@ -240,6 +240,7 @@ function uploadDietModal() {
         saveBtn.classList.remove('btn-primary')
         saveBtn.classList.add('btn-success')
         saveBtn.replaceChild(createIcon(CheckCircle, 16, 2), saveBtn.firstChild)
+        if (onSaved) onSaved()
       })
       .catch((err) => {
         saveBtn.disabled = false

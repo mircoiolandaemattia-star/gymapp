@@ -4,6 +4,7 @@ import {
   getCurrentDietPlan,
   getActiveDietPlan,
   saveDietPlan,
+  deleteDietPlan,
 } from '../controllers/dietPlanController.js'
 
 const router = Router()
@@ -13,5 +14,6 @@ router.use(authenticate)
 router.get('/', getCurrentDietPlan)
 router.get('/active', getActiveDietPlan)
 router.post('/', saveDietPlan)
+router.delete('/', deleteDietPlan)
 
 export default router
