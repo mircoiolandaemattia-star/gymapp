@@ -86,8 +86,16 @@ function uploadWorkoutModal({ onSaved } = {}) {
   })
 
   let parsedDays = []
+  let processing = false
 
   function processFile(file) {
+    processing = true
+    modal.style.pointerEvents = 'none'
+    confirmBtn.disabled = true
+    confirmBtn.classList.add('btn-loading')
+    const busyLoader = createIcon(Loader, 16, 2)
+    busyLoader.classList.add('upload-busy-loader')
+    confirmBtn.appendChild(busyLoader)
     dzContent.style.display = 'none'
     previewArea.style.display = 'flex'
 
@@ -121,16 +129,26 @@ function uploadWorkoutModal({ onSaved } = {}) {
           }),
         })
         parsedDays = data.days || []
+        finishProcessing()
         previewArea.style.display = 'none'
         resultArea.style.display = 'block'
         showResult()
       } catch (err) {
+        finishProcessing()
         previewArea.style.display = 'none'
         resultArea.style.display = 'block'
         resultArea.appendChild(aiErrorBox({ message: err.message, onClose: closeModal }))
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  function finishProcessing() {
+    processing = false
+    modal.style.pointerEvents = ''
+    confirmBtn.disabled = false
+    confirmBtn.classList.remove('btn-loading')
+    confirmBtn.querySelector('.upload-busy-loader')?.remove()
   }
 
   function showResult() {
@@ -167,7 +185,9 @@ function uploadWorkoutModal({ onSaved } = {}) {
   confirmBtn.addEventListener('click', async () => {
     confirmBtn.disabled = true
     confirmBtn.classList.add('btn-loading')
-    confirmBtn.appendChild(createIcon(Loader, 16, 2))
+    const saveLoader = createIcon(Loader, 16, 2)
+    saveLoader.classList.add('upload-busy-loader')
+    confirmBtn.appendChild(saveLoader)
     try {
       await saveWorkoutPlan({
         name: 'Scheda importata',
@@ -180,7 +200,7 @@ function uploadWorkoutModal({ onSaved } = {}) {
       alert(err.message || 'Errore nel salvataggio della scheda')
       confirmBtn.disabled = false
       confirmBtn.classList.remove('btn-loading')
-      confirmBtn.querySelector('svg')?.remove()
+      confirmBtn.querySelector('.upload-busy-loader')?.remove()
     }
   })
   footer.appendChild(confirmBtn)

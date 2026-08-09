@@ -58,7 +58,7 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
 
     const hint = document.createElement('p')
     hint.className = 'photo-pick-text'
-    hint.textContent = 'Centra un codice a barre nel riquadro'
+    hint.textContent = 'Centra un codice a barre nel riquadro · tocca lo schermo per mettere a fuoco'
     body.appendChild(hint)
 
     const manualBtn = document.createElement('button')
@@ -100,17 +100,46 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
       .then(() => {
         setTimeout(() => {
           if (!scanning) return
-          try {
-            scanner.applyVideoConstraints({ focusMode: 'continuous' })
-          } catch {
-            /* il focus continuo non è supportato su tutti i dispositivi */
-          }
-        }, 2000)
+          applyVideoFocus(id, region)
+        }, 1500)
       })
       .catch(() => {
         region.remove()
         showCameraError()
       })
+  }
+
+  function applyVideoFocus(id, region) {
+    const video = document.getElementById(id)
+    const track = video && video.srcObject && video.srcObject.getVideoTracks()[0]
+    if (!track) return
+
+    let modes = []
+    try {
+      modes = (track.getCapabilities() || {}).focusMode || []
+    } catch {
+      /* getCapabilities non disponibile */
+    }
+
+    if (modes.includes('continuous')) {
+      track
+        .applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+        .catch(() => {})
+    }
+    if (modes.includes('single-shot') || modes.includes('continuous')) {
+      enableTapToFocus(region, track)
+    }
+  }
+
+  function enableTapToFocus(region, track) {
+    const constrain = (e) => {
+      const rect = region.getBoundingClientRect()
+      const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+      const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height))
+      const poi = track.applyConstraints({ advanced: [{ focusMode: 'single-shot', pointsOfInterest: { x, y } }] })
+      poi.catch(() => track.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] }).catch(() => {}))
+    }
+    region.addEventListener('pointerdown', constrain, { passive: true })
   }
 
   function showCameraError() {

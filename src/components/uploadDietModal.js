@@ -85,8 +85,16 @@ function uploadDietModal() {
   })
 
   let parsedDiet = null
+  let processing = false
 
   function processFile(file) {
+    processing = true
+    modal.style.pointerEvents = 'none'
+    saveBtn.disabled = true
+    saveBtn.classList.add('btn-loading')
+    const busyLoader = createIcon(Loader, 16, 2)
+    busyLoader.classList.add('upload-busy-loader')
+    saveBtn.appendChild(busyLoader)
     dzContent.style.display = 'none'
     previewArea.style.display = 'flex'
 
@@ -120,16 +128,26 @@ function uploadDietModal() {
           }),
         })
         parsedDiet = data || { days: [] }
+        finishProcessing()
         previewArea.style.display = 'none'
         resultArea.style.display = 'block'
         showResult()
       } catch (err) {
+        finishProcessing()
         previewArea.style.display = 'none'
         resultArea.style.display = 'block'
         resultArea.appendChild(aiErrorBox({ message: err.message, onClose: close }))
       }
     }
     reader.readAsDataURL(file)
+  }
+
+  function finishProcessing() {
+    processing = false
+    modal.style.pointerEvents = ''
+    saveBtn.disabled = false
+    saveBtn.classList.remove('btn-loading')
+    saveBtn.querySelector('.upload-busy-loader')?.remove()
   }
 
   function showResult() {
