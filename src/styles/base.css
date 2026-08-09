@@ -4360,3 +4360,190 @@ html.light .bottom-nav {
     padding: var(--space-2xl);
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   UX MOTION & LAYOUT
+   Micro-animazioni e rifiniture di spazio/interazione
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* —— Touch target + press feedback —— */
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.btn {
+  min-height: 44px;
+  padding: 11px var(--space-lg);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-loading {
+  transition: none;
+}
+
+.btn-icon-sm,
+.modal-close {
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    transform 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+
+.modal-close {
+  width: 40px;
+  height: 40px;
+}
+
+.btn-icon-sm:active,
+.modal-close:active {
+  transform: scale(0.86);
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.nav-item {
+  transition: color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+}
+
+.nav-item:active {
+  transform: scale(0.92);
+}
+
+.nav-item.active {
+  color: var(--accent);
+}
+
+.nav-item.active svg {
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.45));
+}
+
+/* —— Modal: apertura più fluida (bottom-sheet) ---- */
+
+.modal-overlay {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.modal {
+  animation: modalSheetIn 0.32s var(--ease-out);
+}
+
+@keyframes modalSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* —— Card e statistiche: feedback al tocco ---- */
+
+.card,
+.stat-card {
+  transition: background 0.2s var(--ease-out), border-color 0.2s var(--ease-out),
+    transform 0.15s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.card:active,
+.stat-card:active {
+  transform: scale(0.985);
+}
+
+/* —— Campi: focus più evidente e morbido ---- */
+
+.input {
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+    background 0.2s var(--ease-out);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16);
+}
+
+/* —— Righe di lista: press + hover ---- */
+
+.meal-item-row,
+.workout-ex-row,
+.measure-row,
+.food-row,
+.history-row,
+.active-set-row,
+.action-sheet-item {
+  transition: background 0.18s var(--ease-out), transform 0.15s var(--ease-out);
+  cursor: pointer;
+}
+
+.meal-item-row:hover,
+.workout-ex-row:hover,
+.measure-row:hover,
+.food-row:hover,
+.history-row:hover,
+.active-set-row:hover,
+.action-sheet-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.meal-item-row:active,
+.workout-ex-row:active,
+.measure-row:active,
+.food-row:active,
+.history-row:active,
+.active-set-row:active,
+.action-sheet-item:active {
+  transform: scale(0.99);
+}
+
+/* —— Entrata pagina con leggero stagger ---- */
+
+.page > * {
+  animation: fadeIn 0.32s var(--ease-out) backwards;
+}
+
+.page > *:nth-child(2) { animation-delay: 0.03s; }
+.page > *:nth-child(3) { animation-delay: 0.06s; }
+.page > *:nth-child(4) { animation-delay: 0.09s; }
+.page > *:nth-child(5) { animation-delay: 0.12s; }
+.page > *:nth-child(6) { animation-delay: 0.15s; }
+
+/* —— Chip con feedback "spring" ---- */
+
+.chip,
+.gen-chip {
+  transition: border-color 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    background 0.15s var(--ease-out), transform 0.15s var(--ease-spring);
+}
+
+.chip:active,
+.gen-chip:active {
+  transform: scale(0.94);
+}
+
+/* —— Spazio tra group di elementi affiancati ---- */
+
+.confirm-actions,
+.data-actions,
+.macro-input-grid {
+  gap: var(--space-sm);
+}
+
+.input-group {
+  margin-bottom: var(--space-lg);
+}
+
+.action-sheet-item {
+  margin-bottom: var(--space-xs);
+}
