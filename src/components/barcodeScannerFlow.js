@@ -72,13 +72,15 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
     body.appendChild(manualBtn)
 
     scanner = new Html5Qrcode(id, { verbose: false })
+    scanning = true
     scanner
       .start(
         { facingMode: 'environment' },
         {
-          fps: 10,
-          qrbox: { width: 240, height: 140 },
+          fps: 15,
+          qrbox: { width: 280, height: 170 },
           aspectRatio: 1.6,
+          useBarCodeDetectorIfSupported: true,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
@@ -95,6 +97,16 @@ function barcodeScannerFlow({ mealName, onFoodAdded }) {
         },
         () => {}
       )
+      .then(() => {
+        setTimeout(() => {
+          if (!scanning) return
+          try {
+            scanner.applyVideoConstraints({ focusMode: 'continuous' })
+          } catch {
+            /* il focus continuo non è supportato su tutti i dispositivi */
+          }
+        }, 2000)
+      })
       .catch(() => {
         region.remove()
         showCameraError()
