@@ -39,9 +39,10 @@ function generateDietFlow({ onSaveDiet }) {
   body.className = 'modal-body'
 
   let step = 1
-  const totalSteps = 4
+  const totalSteps = 5
   const answers = {}
   const allergens = new Set()
+  const cheatDays = new Set()
   let generatedDiet = null
 
   const content = document.createElement('div')
@@ -69,6 +70,11 @@ function generateDietFlow({ onSaveDiet }) {
     { q: 'Hai allergie o intolleranze?', key: 'allergens', options: ALLERGENS, multi: true },
     { q: 'Quali sono le tue preferenze alimentari?', key: 'preference', options: ['Onnivoro', 'Vegetariano', 'Vegano', 'Pescatariano'] },
     { q: 'Quanti pasti al giorno?', key: 'meals', custom: MEAL_COUNTS },
+    {
+      q: 'In quali giorni ti concedi qualche sgarro?',
+      key: 'cheatDays',
+      days: WEEK_DAYS.map((label, i) => ({ value: i + 1, label })),
+    },
   ]
 
   function renderStep() {
@@ -121,6 +127,25 @@ function generateDietFlow({ onSaveDiet }) {
       otherInput.addEventListener('input', () => { answers.otherAllergens = otherInput.value.trim() })
       otherGroup.appendChild(otherInput)
       stepContent.appendChild(otherGroup)
+    } else if (s.days) {
+      opts.classList.add('gen-chips')
+      s.days.forEach((opt) => {
+        const chip = document.createElement('button')
+        chip.className = 'gen-chip' + (cheatDays.has(opt.value) ? ' selected' : '')
+        chip.textContent = opt.label
+        chip.addEventListener('click', () => {
+          if (cheatDays.has(opt.value)) cheatDays.delete(opt.value)
+          else cheatDays.add(opt.value)
+          chip.classList.toggle('selected')
+        })
+        opts.appendChild(chip)
+      })
+      stepContent.appendChild(opts)
+
+      const hint = document.createElement('p')
+      hint.className = 'gen-cheat-hint'
+      hint.textContent = 'Se non selezioni nulla, i pasti saranno equilibrati tutti i giorni.'
+      stepContent.appendChild(hint)
     } else if (s.custom) {
       s.custom.forEach((opt) => {
         const btn = document.createElement('button')
@@ -212,6 +237,7 @@ function generateDietFlow({ onSaveDiet }) {
         preferences: answers.preference ? [answers.preference] : [],
         mealsPerDay: answers.meals || '3',
         dailyCalories: getNutritionTargets().calories || 2000,
+        cheatDays: [...cheatDays],
       }),
     })
       .then((data) => {
@@ -257,7 +283,14 @@ function generateDietFlow({ onSaveDiet }) {
       head.className = 'diet-plan-day-head'
       const dayName = document.createElement('span')
       dayName.className = 'diet-plan-day-name'
-      dayName.textContent = WEEK_DAYS[(day.day || i + 1) - 1] || `Giorno ${day.day || i + 1}`
+      const dayId = day.day || i + 1
+      dayName.textContent = WEEK_DAYS[dayId - 1] || `Giorno ${dayId}`
+      if (cheatDays.has(dayId)) {
+        const tag = document.createElement('span')
+        tag.className = 'diet-plan-sgarro'
+        tag.textContent = 'sgarro'
+        dayName.appendChild(tag)
+      }
       head.appendChild(dayName)
       const totalKcal = (day.meals || []).reduce((acc, m) => acc + (Number(m.calories) || 0), 0)
       const dayMeta = document.createElement('span')

@@ -119,7 +119,14 @@ Per ogni giorno includi nome, gruppo muscolare e lista di esercizi con serie, ri
 
 export async function generateDiet(req, res, next) {
   try {
-    const { goal, allergens, preferences, mealsPerDay, dailyCalories } = req.body
+    const { goal, allergens, preferences, mealsPerDay, dailyCalories, cheatDays } = req.body
+
+    const cheatDayList = Array.isArray(cheatDays) && cheatDays.length ? cheatDays : []
+    const cheatContext = cheatDayList.length
+      ? `Nei seguenti giorni della settimana l'utente si concede degli sgarri alimentari (lun=1, mar=2, mer=3, gio=4, ven=5, sab=6, dom=7): ${cheatDayList.join(
+          ', '
+        )}. In questi giorni puoi aumentare leggermente le calorie (fino al 15-20% in più rispetto al fabbisogno giornaliero, ad esempio con un dolce o un pasto più ricco), mantenendo comunque un apporto proteico adeguato. Negli altri giorni mantieni il piano più contenuto per compensare.`
+      : 'Nessun giorno di sgarro: mantieni tutti i pasti bilanciati entro il fabbisogno calorico giornaliero.'
 
     const prompt = `Genera un piano alimentare settimanale bilanciato. Parametri:
 - Obiettivo: ${goal || 'non specificato'}
@@ -127,8 +134,9 @@ export async function generateDiet(req, res, next) {
 - Preferenze alimentari: ${Array.isArray(preferences) && preferences.length ? preferences.join(', ') : 'nessuna'}
 - Pasti al giorno: ${mealsPerDay || 3}
 - Fabbisogno calorico giornaliero: ${dailyCalories || '2000'} kcal
+- Giorni di sgarro: ${cheatContext}
 
-Per ogni giorno elenca i pasti (colazione, pranzo, cena, eventuali spuntini) con alimenti, calorie e macro bilanciati entro il fabbisogno calorico giornaliero, rispettando allergie e preferenze. Rispondi SOLO con un oggetto JSON valido nel formato:
+Per ogni giorno elenca i pasti (colazione, pranzo, cena, eventuali spuntini) con alimenti, calorie e macro bilanciati entro il fabbisogno calorico giornaliero, rispettando allergie e preferenze. Nei giorni di sgarro è consentito un leggero surplus calorico. Rispondi SOLO con un oggetto JSON valido nel formato:
 {"days":[{"day":1-7,"meals":[{"name":"nome pasto","calories":kcal,"proteinG":g,"carbsG":g,"fatsG":g,"items":[{"name":"alimento","quantityG":g}]}]}]}`
 
     const result = await generateContent(prompt, [], { json: true })
