@@ -3903,6 +3903,12 @@ html.light .bottom-nav {
   margin: 0;
 }
 
+.diet-plan-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
 .diet-plan-bar-row {
   display: flex;
   align-items: center;

@@ -327,7 +327,7 @@ function buildPlanCard() {
   card.appendChild(plannedLabel)
 
   const planActions = document.createElement('div')
-  planActions.style.cssText = 'display:flex;gap:8px;margin-top:var(--space-md)'
+  planActions.className = 'diet-plan-actions'
   const viewBtn = document.createElement('button')
   viewBtn.className = 'btn btn-outline'
   viewBtn.style.flex = '1'
