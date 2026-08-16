@@ -2273,6 +2273,40 @@ textarea {
   padding: 1px 8px;
 }
 
+.diet-plan-viewer-none {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  padding: var(--space-sm) 0;
+}
+
+.diet-plan-viewer-meal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.diet-plan-viewer-kcal {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.diet-plan-viewer-items {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diet-plan-viewer-items li {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
 .gen-cheat-hint {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -3147,6 +3181,17 @@ textarea {
   padding: var(--space-2xl) 0;
   color: var(--text-secondary);
   font-size: 0.875rem;
+}
+
+.gen-busy {
+  opacity: 0.4;
+  filter: brightness(0.7) saturate(0.6);
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.gen-busy svg {
+  animation: spin 1s linear infinite;
 }
 
 .gen-result {

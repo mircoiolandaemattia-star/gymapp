@@ -17,7 +17,7 @@ const WEEK_DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 
 function generateDietFlow({ onSaveDiet }) {
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close() })
+  overlay.addEventListener('click', (e) => { if (e.target === overlay && !busy) close() })
 
   const modal = document.createElement('div')
   modal.className = 'modal modal-scroll'
@@ -44,6 +44,7 @@ function generateDietFlow({ onSaveDiet }) {
   const allergens = new Set()
   const cheatDays = new Set()
   let generatedDiet = null
+  let busy = false
 
   const content = document.createElement('div')
   content.className = 'gen-content'
@@ -211,10 +212,35 @@ function generateDietFlow({ onSaveDiet }) {
     navRow.appendChild(nextBtn)
   }
 
+  function setBusy(state) {
+    busy = state
+    ;[saveBtn, footerBtn, closeBtn].forEach((btn) => {
+      if (state) {
+        btn.dataset.busyLayout = btn.innerHTML
+        const svg = btn.querySelector('svg')
+        if (svg) {
+          const sp = createIcon(Loader, 16, 2)
+          sp.classList.add('spin')
+          btn.replaceChild(sp, svg)
+        }
+        btn.disabled = true
+        btn.classList.add('gen-busy')
+      } else {
+        if (btn.dataset.busyLayout) {
+          btn.innerHTML = btn.dataset.busyLayout
+          delete btn.dataset.busyLayout
+        }
+        btn.disabled = false
+        btn.classList.remove('gen-busy')
+      }
+    })
+  }
+
   function startGeneration() {
     stepContent.style.display = 'none'
     navRow.style.display = 'none'
     stepIndicator.style.display = 'none'
+    setBusy(true)
 
     const loading = document.createElement('div')
     loading.className = 'gen-loading'
@@ -242,11 +268,13 @@ function generateDietFlow({ onSaveDiet }) {
     })
       .then((data) => {
         generatedDiet = data || { days: [] }
+        setBusy(false)
         loading.style.display = 'none'
         resultArea.style.display = 'block'
         renderPlan()
       })
       .catch((err) => {
+        setBusy(false)
         loading.style.display = 'none'
         resultArea.style.display = 'block'
         resultArea.appendChild(aiErrorBox({ message: err.message, onClose: close }))
@@ -378,6 +406,7 @@ function generateDietFlow({ onSaveDiet }) {
   document.body.appendChild(overlay)
 
   function close() {
+    if (busy) return
     document.body.removeChild(overlay)
   }
 }
