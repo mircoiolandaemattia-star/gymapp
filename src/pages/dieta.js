@@ -8,7 +8,6 @@ import { addFoodModal } from '/src/components/addFoodModal.js'
 import { generateDietFlow } from '/src/components/generateDietFlow.js'
 import { uploadDietModal } from '/src/components/uploadDietModal.js'
 import { dietPlanEditor } from '/src/components/dietPlanEditor.js'
-import { dietPlanViewer } from '/src/components/dietPlanViewer.js'
 import { loadingEl, errorEl } from '/src/utils/ui.js'
 import { quickConfirm } from '/src/components/quickConfirm.js'
 import { premiumUpsellModal } from '/src/components/premiumUpsellModal.js'
@@ -328,17 +327,6 @@ function buildPlanCard() {
 
   const planActions = document.createElement('div')
   planActions.className = 'diet-plan-actions'
-  const viewBtn = document.createElement('button')
-  viewBtn.className = 'btn btn-outline'
-  viewBtn.style.flex = '1'
-  viewBtn.appendChild(createIcon(ChevronRight, 16, 2))
-  const viewLabel = document.createElement('span')
-  viewLabel.textContent = 'Visualizza'
-  viewBtn.appendChild(viewLabel)
-  viewBtn.addEventListener('click', () => {
-    dietPlanViewer({ plan: activePlan, onSaved: reload })
-  })
-  planActions.appendChild(viewBtn)
   const editBtn = document.createElement('button')
   editBtn.className = 'btn btn-outline'
   editBtn.style.flex = '1'
