@@ -329,7 +329,6 @@ function buildPlanCard() {
   planActions.className = 'diet-plan-actions'
   const editBtn = document.createElement('button')
   editBtn.className = 'btn btn-outline'
-  editBtn.style.flex = '1'
   editBtn.appendChild(createIcon(Pencil, 16, 2))
   const editLabel = document.createElement('span')
   editLabel.textContent = 'Modifica/Visualizza'
@@ -340,7 +339,6 @@ function buildPlanCard() {
   planActions.appendChild(editBtn)
   const delBtn = document.createElement('button')
   delBtn.className = 'btn btn-danger'
-  delBtn.style.flex = '1'
   delBtn.appendChild(createIcon(Trash2, 16, 2))
   const delLabel = document.createElement('span')
   delLabel.textContent = 'Elimina'
