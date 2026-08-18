@@ -366,11 +366,8 @@ function generateDietFlow({ onSaveDiet }) {
     })
       .then(() => {
         savedPlan = true
-        saveLabel.textContent = 'Piano salvato'
-        saveBtn.classList.remove('btn-primary')
-        saveBtn.classList.add('btn-success')
-        saveBtn.replaceChild(createIcon(CheckCircle, 16, 2), saveBtn.firstChild)
         if (onSaveDiet) onSaveDiet()
+        close()
       })
       .catch((err) => {
         saveBtn.disabled = false

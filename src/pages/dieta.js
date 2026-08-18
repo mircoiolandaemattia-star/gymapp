@@ -332,7 +332,7 @@ function buildPlanCard() {
   editBtn.style.flex = '1'
   editBtn.appendChild(createIcon(Pencil, 16, 2))
   const editLabel = document.createElement('span')
-  editLabel.textContent = 'Modifica'
+  editLabel.textContent = 'Modifica/Visualizza'
   editBtn.appendChild(editLabel)
   editBtn.addEventListener('click', () => {
     dietPlanEditor({ plan: activePlan, onSaved: reload })
