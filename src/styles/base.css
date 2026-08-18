@@ -3905,8 +3905,15 @@ html.light .bottom-nav {
 
 .diet-plan-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   margin-top: var(--space-md);
+}
+
+.diet-plan-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
 }
 
 .diet-plan-bar-row {
